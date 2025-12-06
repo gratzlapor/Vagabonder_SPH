@@ -6,9 +6,11 @@ using UnityEngine;
 public class SPH : MonoBehaviour
 {
     public List<GameObject> particles = new List<GameObject>();
-    public float gizmoBoxSize = 5;
-    public float radius = 1;
-    public float particleCount = 3;
+    float gizmoBoxSize = 5;
+    float radius = 1;
+    float particleCount = 3;
+    float gasConstant = 8.314f;
+    float restDensity = 1.566681f;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -27,6 +29,7 @@ public class SPH : MonoBehaviour
     {
         StayInBound();
         CalculateDensity();
+        CalculatePressure();
     }
 
     void OnDrawGizmos()
@@ -53,13 +56,21 @@ public class SPH : MonoBehaviour
             float allMass = 0;
             for (int j = 0; j < particleCount; j++)
             {
-                float difference = Vector3.Distance(particles[i].transform.position, particles[j].transform.position);
-                if (difference < radius)
-                {
-                    allMass += particles[j].GetComponent<Properties>().mass * (315f / (64 * Mathf.PI * radius)) * Mathf.Pow(radius - Mathf.Pow(difference, 2), 3);
-                }
+                 float difference = Vector3.Distance(particles[i].transform.position, particles[j].transform.position);
+                 if (difference < radius)
+                 {
+                     allMass += particles[j].GetComponent<Properties>().mass * (315f / (64 * Mathf.PI * radius)) * Mathf.Pow(radius - Mathf.Pow(difference, 2), 3);
+                 }
             }
             particles[i].GetComponent<Properties>().density = allMass;
+        }
+    }
+
+    void CalculatePressure()
+    {
+        for (int i = 0; i < particleCount; i++)
+        {
+            particles[i].GetComponent<Properties>().pressure = gasConstant * (particles[i].GetComponent<Properties>().density - restDensity);
         }
     }
 }
