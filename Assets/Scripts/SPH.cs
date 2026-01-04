@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 //1.Calculate density
@@ -10,7 +10,7 @@ public class SPH : MonoBehaviour
     float radius = 1;
     float particleCount = 3;
     float gasConstant = 8.314f;
-    float restDensity = 1.566681f;
+    float restDensity = 1.1f;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -18,7 +18,7 @@ public class SPH : MonoBehaviour
         for (int i = 0; i < particleCount; i++)
         {
             GameObject particle = new GameObject("Particle " + i);
-            particle.transform.position = new Vector3(0, 0, i*2);
+            particle.transform.position = new Vector3(0, 0, i);
             particle.AddComponent<Properties>();
             particles.Add(particle);
         }
@@ -53,16 +53,16 @@ public class SPH : MonoBehaviour
     {
         for (int i = 0; i < particleCount; i++)
         {
-            float allMass = 0;
+            float density = 1;
             for (int j = 0; j < particleCount; j++)
             {
                  float difference = Vector3.Distance(particles[i].transform.position, particles[j].transform.position);
-                 if (difference < radius)
+                 if (i!=j && difference <= radius) // if 0<r<h
                  {
-                     allMass += particles[j].GetComponent<Properties>().mass * (315f / (64 * Mathf.PI * radius)) * Mathf.Pow(radius - Mathf.Pow(difference, 2), 3);
+                     density += particles[j].GetComponent<Properties>().mass * (315f / (64 * Mathf.PI * radius)) * Mathf.Pow(Mathf.Pow(radius,2) - Mathf.Pow(difference, 2), 3);
                  }
             }
-            particles[i].GetComponent<Properties>().density = allMass;
+            particles[i].GetComponent<Properties>().density = density;
         }
     }
 
@@ -72,5 +72,10 @@ public class SPH : MonoBehaviour
         {
             particles[i].GetComponent<Properties>().pressure = gasConstant * (particles[i].GetComponent<Properties>().density - restDensity);
         }
+    }
+
+    void CalculateAcceleration()
+    {
+
     }
 }
