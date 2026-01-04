@@ -30,6 +30,7 @@ public class SPH : MonoBehaviour
         StayInBound();
         CalculateDensity();
         CalculatePressure();
+        CalculateForcesThenAcceleration();
     }
 
     void OnDrawGizmos()
@@ -74,7 +75,17 @@ public class SPH : MonoBehaviour
         }
     }
 
-    void CalculateAcceleration()
+
+    void CalculateForcesThenAcceleration()
+    {
+        for (int i = 0;i < particleCount; i++)
+        {
+            float allForces = particles[i].GetComponent<Properties>().pressure;
+            particles[i].GetComponent<Properties>().acceleration = allForces / particles[i].GetComponent<Properties>().density;
+        }
+    }
+
+    void UpdatePosition()
     {
 
     }

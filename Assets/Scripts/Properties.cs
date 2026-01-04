@@ -5,6 +5,7 @@ public class Properties : MonoBehaviour
     public float mass = 1f;
     public float density;
     public float pressure;
+    public float acceleration;
     public float velocity;
     public float radius;
 }
