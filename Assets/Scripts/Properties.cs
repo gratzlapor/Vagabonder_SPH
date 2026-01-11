@@ -5,7 +5,9 @@ public class Properties : MonoBehaviour
     public float mass = 1f;
     public float density;
     public float pressure;
-    public float acceleration;
-    public float velocity;
+    public Vector3 pressureForce;
+    public Vector3 viscosity;
+    public Vector3 acceleration;
+    public Vector3 velocity;
     public float radius;
 }
