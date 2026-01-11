@@ -10,8 +10,9 @@ public class SPH : MonoBehaviour
     float radius = 1;
     float particleCount = 3;
     float gasConstant = 10f;
-    float restDensity = 2f;
-    float friction = 5f;
+    float restDensity = 1f;
+    float friction = 0.99f;
+    float timeStep = 0.01f;
     Vector3 gravity = new Vector3(0,-10,0);
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -19,8 +20,10 @@ public class SPH : MonoBehaviour
     {
         for (int i = 0; i < particleCount; i++)
         {
-            GameObject particle = new GameObject("Particle " + i);
-            particle.transform.position = new Vector3(0, 0, 2*(i-1));
+            GameObject particle = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            particle.name = i.ToString();
+            particle.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
+            particle.transform.position = new Vector3(0, 0, i);
             particle.AddComponent<Properties>();
             particles.Add(particle);
         }
@@ -29,12 +32,13 @@ public class SPH : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        StayInBound();
         CalculateDensity();
         CalculatePressure();
         CalculatePressureForce();
         CalculateViscosity();
         CalculateAcceleration();
+        CalculateVelocity();
+        StayInBound();
     }
 
     void OnDrawGizmos()
@@ -42,14 +46,29 @@ public class SPH : MonoBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireCube(Vector3.zero, new Vector3(gizmoBoxSize, gizmoBoxSize, gizmoBoxSize));
     }
-
     void StayInBound()
     {
-        foreach (var particle in particles)
+        for (int i = 0; i < particleCount; i++)
         {
-            if (particle.transform.position.y < -gizmoBoxSize / 2)
+            if (particles[i].transform.position.y <= -gizmoBoxSize / 2)
             {
-                particle.transform.position = new Vector3(particle.transform.position.x, -gizmoBoxSize / 2, particle.transform.position.z);
+                particles[i].transform.position = new Vector3(particles[i].transform.position.x, -gizmoBoxSize / 2, particles[i].transform.position.z);
+            }
+            if(particles[i].transform.position.x <= -gizmoBoxSize / 2)
+            {
+                particles[i].transform.position = new Vector3(-gizmoBoxSize / 2, particles[i].transform.position.y, particles[i].transform.position.z);
+            }
+            if (particles[i].transform.position.x >= gizmoBoxSize / 2)
+            {
+                particles[i].transform.position = new Vector3(gizmoBoxSize / 2, particles[i].transform.position.y, particles[i].transform.position.z);
+            }
+            if (particles[i].transform.position.z <= -gizmoBoxSize / 2)
+            {
+                particles[i].transform.position = new Vector3(particles[i].transform.position.x, particles[i].transform.position.y, -gizmoBoxSize / 2);
+            }
+            if (particles[i].transform.position.z >= gizmoBoxSize / 2)
+            {
+                particles[i].transform.position = new Vector3(particles[i].transform.position.x, particles[i].transform.position.y, gizmoBoxSize / 2);
             }
         }
     }
@@ -58,7 +77,7 @@ public class SPH : MonoBehaviour
     {
         for (int i = 0; i < particleCount; i++)
         {
-            float density = 0;
+            float density = 1;
             for (int j = 0; j < particleCount; j++)
             {
                  float difference = Vector3.Distance(particles[i].transform.position, particles[j].transform.position);
@@ -119,10 +138,32 @@ public class SPH : MonoBehaviour
 
     void CalculateAcceleration()
     {
+        Vector3 allForces = new Vector3();
         for (int i = 0; i < particleCount; i++)
         {
-            Vector3 allForces = particles[i].GetComponent<Properties>().pressureForce + particles[i].GetComponent<Properties>().viscosity + gravity;
+            if (particles[i].transform.position.y <= -gizmoBoxSize / 2)
+            {
+                allForces = particles[i].GetComponent<Properties>().pressureForce + particles[i].GetComponent<Properties>().viscosity;
+            }
+            else
+            {
+                allForces = particles[i].GetComponent<Properties>().pressureForce + particles[i].GetComponent<Properties>().viscosity + gravity;
+            }
             particles[i].GetComponent<Properties>().acceleration = allForces / particles[i].GetComponent<Properties>().density;
+        }
+    }
+
+    void CalculateVelocity()
+    {
+        Vector3 newVel = new Vector3();
+        Vector3 newPos = new Vector3();
+        for (int i = 0; i < particleCount; i++)
+        {
+            newVel = particles[i].GetComponent<Properties>().velocity + timeStep * particles[i].GetComponent<Properties>().acceleration;
+            newPos = particles[i].transform.position + timeStep * particles[i].GetComponent<Properties>().velocity;
+
+            particles[i].GetComponent<Properties>().velocity = newVel*friction;
+            particles[i].transform.position = newPos;
         }
     }
 }
