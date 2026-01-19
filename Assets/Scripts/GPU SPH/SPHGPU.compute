@@ -1,0 +1,107 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CalculateVariables
+#pragma kernel CalculateForces
+#pragma kernel CalculatePosition
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+
+struct particle
+{
+    float density;
+    float pressure;
+    float3 pressureForce;
+    float3 viscosityForce;
+    float3 acceleration;
+    float3 velocity;
+    float3 position;
+};
+
+//constants and variables
+float pi;
+float mass;
+float radius;
+float radius2;
+float gasConstant;
+float restDensity;
+float fluidResistance;
+float gravity;
+float timeStep;
+float friction;
+
+int allParticlesCount;
+uint wParticleCount;
+
+
+//array
+RWStructuredBuffer<particle> Particles;
+
+
+[numthreads(100, 1, 1)]
+void CalculateVariables(uint3 id : SV_DispatchThreadID) // Density and Pressure
+{   
+    float density = float(0);
+    for (int j = 0; j < allParticlesCount; j++)
+    {
+        float3 substract = Particles[id.x].position - Particles[j].position;
+        float difference2 = dot(substract, substract);
+        if (difference2 <= radius2) // if 0<r<h
+        {
+            density += mass * (315 / (64 * pi * pow(abs(radius), 9))) * pow(radius2 - difference2, 3);
+        }
+    }
+    if (id.x >= wParticleCount)
+    {
+        Particles[id.x].density = density*20;
+    }
+    else
+    {
+        Particles[id.x].density = density;
+    }
+    Particles[id.x].pressure = gasConstant * (Particles[id.x].density - restDensity);
+}
+
+[numthreads(100, 1, 1)]
+void CalculateForces(uint3 id : SV_DispatchThreadID) // PressureForce and ViscosityForce (Vector3)
+{
+    float3 pressureForce = float3(0, 0, 0);
+    float3 viscosityForce = float3(0, 0, 0);
+    for (int j = 0; j < allParticlesCount; j++)
+    {
+        float difference = distance(Particles[id.x].position, Particles[j].position);
+        if (id.x != j && difference <= radius) // if 0<r<h
+        {
+            float3 direction = normalize(Particles[id.x].position - Particles[j].position); // r/|r|
+            pressureForce += mass * ((Particles[id.x].pressure + Particles[j].pressure) / (2 * Particles[j].density)) * -(45 / (pi * pow(radius, 6))) * (direction * pow(radius - difference,2));
+            viscosityForce += mass * ((Particles[j].velocity - Particles[id.x].velocity) / Particles[j].density) * (45 / (pi * pow(radius, 6))) * (radius - difference);
+        }
+    }
+    Particles[id.x].pressureForce = -pressureForce;
+    if (id.x < wParticleCount)
+    {
+        viscosityForce *= fluidResistance;
+        Particles[id.x].viscosityForce = viscosityForce;
+    }
+}
+
+[numthreads(100, 1, 1)]
+void CalculatePosition(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= wParticleCount)
+    {
+        return;
+    }
+    float3 gravityForce = float3(0, gravity*mass, 0);
+    float3 allForces = float3(0,0,0);
+    allForces = Particles[id.x].pressureForce + Particles[id.x].viscosityForce + gravityForce;
+    Particles[id.x].acceleration = allForces / Particles[id.x].density;
+    
+    float3 newVel;
+    newVel = Particles[id.x].velocity + timeStep * Particles[id.x].acceleration;
+    Particles[id.x].velocity = newVel * friction;
+    
+    // a falakat ne mozgassuk
+    float3 newPos;
+    newPos = Particles[id.x].position + timeStep * Particles[id.x].velocity;
+    Particles[id.x].position = newPos;
+}

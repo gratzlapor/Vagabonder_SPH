@@ -3,16 +3,14 @@ using UnityEngine;
 
 //1.Calculate density
 
-public class SPH : MonoBehaviour
+public class SPHCPU : MonoBehaviour
 {
     public List<GameObject> particles = new List<GameObject>();
     public List<GameObject> particlesBox = new List<GameObject>();
     public List<GameObject> allParticles = new List<GameObject>();
 
-    float gizmoBoxSize = 10;
     float radius = 1.2f;
     int particleCount;
-    int particleBoxCount;
     int allParticlesCount;
     float gasConstant = 100f;
     float restDensity = 1.1f;
@@ -97,7 +95,6 @@ public class SPH : MonoBehaviour
         }
 
         particleCount = particles.Count;
-        particleBoxCount = particlesBox.Count;
         allParticlesCount = allParticles.Count;
 
 
@@ -124,7 +121,7 @@ public class SPH : MonoBehaviour
                  float difference = Vector3.Distance(allParticles[i].transform.position, allParticles[j].transform.position);
                  if (i!=j && difference <= radius) // if 0<r<h
                  {
-                     density += allParticles[j].GetComponent<Properties>().mass * (315f / (64 * Mathf.PI * radius)) * Mathf.Pow(Mathf.Pow(radius,2) - Mathf.Pow(difference, 2), 3);
+                     density += allParticles[j].GetComponent<Properties>().mass * (315f / (64 * Mathf.PI * Mathf.Pow(radius,9)) * Mathf.Pow(Mathf.Pow(radius,2) - Mathf.Pow(difference, 2), 3));
                  }
             }
             allParticles[i].GetComponent<Properties>().density = density;
@@ -151,7 +148,7 @@ public class SPH : MonoBehaviour
                 Vector3 direction = allParticles[i].transform.position - allParticles[j].transform.position;
                  if (i!=j && difference <= radius) // if 0<r<h
                  {
-                    pressureForce += allParticles[j].GetComponent<Properties>().mass *(allParticles[i].GetComponent<Properties>().pressure+ allParticles[j].GetComponent<Properties>().pressure)/(2* allParticles[j].GetComponent<Properties>().density) * -(45f / (Mathf.PI * Mathf.Pow(radius, 6))) * ((direction / difference) * (radius-Mathf.Pow(difference,2)));
+                    pressureForce += allParticles[j].GetComponent<Properties>().mass *((allParticles[i].GetComponent<Properties>().pressure+ allParticles[j].GetComponent<Properties>().pressure)/(2* allParticles[j].GetComponent<Properties>().density)) * -(45f / (Mathf.PI * Mathf.Pow(radius, 6))) * ((direction / difference) * (radius-Mathf.Pow(difference,2)));
                  }
             }
             allParticles[i].GetComponent<Properties>().pressureForce = -pressureForce;
