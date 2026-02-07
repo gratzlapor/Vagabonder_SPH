@@ -35,7 +35,7 @@ public class ComputeSetup : MonoBehaviour
     int calcForcesKernel;
     int calcPosition;
     public Particle[] Particles;
-    public Particle[] boundaryParticles;
+    public BoundaryParticle[] boundaryParticles;
     GameObject[] renderedFluidParticles;
     GameObject[] renderedBoundaryParticles;
     Vector3 wCountVector = new Vector3(8,6,9); // 8*6*8 = 432
@@ -97,7 +97,7 @@ public class ComputeSetup : MonoBehaviour
         wCountInt = Particles.Length;
 
 
-        List<Particle> boundaryList = new List<Particle>();
+        List<BoundaryParticle> boundaryList = new List<BoundaryParticle>();
         //Walls
         for (int i = -10; i < wallSize - 10; i++)
         {
@@ -109,7 +109,7 @@ public class ComputeSetup : MonoBehaviour
                     {
                         k += 18;
                     }
-                    Particle p = new Particle();
+                    BoundaryParticle p = new BoundaryParticle();
                     p.position = new Vector3(k, i, j);
                     boundaryList.Add(p);
                 }
@@ -146,7 +146,7 @@ public class ComputeSetup : MonoBehaviour
     void BufferAndDispatchSetup()
     {
         particleBuffer = new ComputeBuffer(Particles.Length, 68);
-        boundaryBuffer = new ComputeBuffer(boundaryParticles.Length, 68);
+        boundaryBuffer = new ComputeBuffer(boundaryParticles.Length, 16);
 
         particleBuffer.SetData(Particles);
         boundaryBuffer.SetData(boundaryParticles);

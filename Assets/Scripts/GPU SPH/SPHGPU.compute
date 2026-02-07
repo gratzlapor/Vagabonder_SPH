@@ -1,4 +1,4 @@
-// Each #kernel tells which function to compile; you can have many kernels
+﻿// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CalculateVariables
 #pragma kernel CalculateForces
 #pragma kernel CalculatePosition
@@ -14,6 +14,12 @@ struct particle
     float3 viscosityForce;
     float3 acceleration;
     float3 velocity;
+    float3 position;
+};
+
+struct boundaryParticle
+{
+    float boundaryMass;
     float3 position;
 };
 
@@ -37,7 +43,7 @@ uint bParticleCount;
 
 //array
 RWStructuredBuffer<particle> Particles;
-RWStructuredBuffer<particle> boundaryParticles;
+RWStructuredBuffer<boundaryParticle> boundaryParticles;
 
 
 
@@ -89,7 +95,7 @@ void CalculateForces(uint3 id : SV_DispatchThreadID) // PressureForce and Viscos
         if (difference <= radius) // if 0<r<h
         {
             float3 direction = normalize(Particles[id.x].position - boundaryParticles[j].position); // r/|r|
-            pressureForce += mass * ((Particles[id.x].pressure / (Particles[id.x].density * Particles[id.x].density)) * -(45 / (pi * pow(radius, 6))) * (direction * pow(radius - difference, 2)));
+            pressureForce += mass * ((Particles[id.x].pressure / (Particles[id.x].density * Particles[id.x].density)*2) * -(45 / (pi * pow(radius, 6))) * (direction * pow(radius - difference, 2)));
         }
     }
     
