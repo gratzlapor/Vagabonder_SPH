@@ -166,9 +166,8 @@ MonoBehaviour:
   computeShader: {fileID: 7200000, guid: 516e4ae6e2a1334499ba4b1d6d3754cd, type: 3}
   Particles: []
   boundaryParticles: []
-  planeMesh: {fileID: 4579454407841743219, guid: cec80b23ca6c5ff48a13d65d10ac4fe5, type: 3}
+  planeMesh: {fileID: -3302399042459555468, guid: cec80b23ca6c5ff48a13d65d10ac4fe5, type: 3}
   planeTransform: {fileID: 847151259}
-  Vertices: []
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -447,7 +446,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: cec80b23ca6c5ff48a13d65d10ac4fe5, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -5
+      value: -8
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: cec80b23ca6c5ff48a13d65d10ac4fe5, type: 3}
       propertyPath: m_LocalPosition.z

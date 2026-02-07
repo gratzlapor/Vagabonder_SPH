@@ -48,12 +48,14 @@ public class ComputeSetup : MonoBehaviour
     [Header("Plane")]
     [SerializeField] Mesh planeMesh;
     [SerializeField] Transform planeTransform;
+    public float spacing;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         ParticleSetup();
         RenderSetup();
+        CalculateSpacing();
         BufferAndDispatchSetup();
     }
 
@@ -156,6 +158,38 @@ public class ComputeSetup : MonoBehaviour
             renderedBoundaryParticles[i].name = "b_" + i;
             renderedBoundaryParticles[i].transform.position = boundaryParticles[i].position;
         }
+    }
+
+    void CalculateSpacing()
+    {
+
+        float sum = 0f;
+        int count = 0;
+
+        for (int i = 0; i < renderedBoundaryParticles.Length; i++)
+        {
+            float minDist = float.MaxValue;
+
+            for (int j = 0; j < renderedBoundaryParticles.Length; j++)
+            {
+                if (i == j) continue;
+
+                float d = Vector3.Distance(
+                    renderedBoundaryParticles[i].transform.position,
+                    renderedBoundaryParticles[j].transform.position
+                );
+
+                if (d < minDist)
+                {
+                    minDist = d;
+                }
+            }
+
+            sum += minDist;
+            count++;
+        }
+
+        spacing = sum / count;
     }
 
     void BufferAndDispatchSetup()
