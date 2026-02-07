@@ -21,7 +21,7 @@ public struct Particle // 68bytes
 
 [System.Serializable]
 [StructLayout(LayoutKind.Sequential, Size = 16)]
-public struct BoundaryParticle // 68bytes
+public struct BoundaryParticle // 16bytes
 {
     public float boundaryMass;
     public float3 position;
@@ -39,10 +39,15 @@ public class ComputeSetup : MonoBehaviour
     GameObject[] renderedFluidParticles;
     GameObject[] renderedBoundaryParticles;
     Vector3 wCountVector = new Vector3(8,6,9); // 8*6*8 = 432
-    public int wCountInt;
-    public int bCountInt; // 2168
+    int wCountInt;
+    int bCountInt; // 1764
     int wallSize = 20;
-    int threads = 16; // Frissítsd az gpu oldalt is
+    int threads = 18; // Frissítsd az gpu oldalt is
+
+
+    [Header("Plane")]
+    [SerializeField] Mesh planeMesh;
+    [SerializeField] Transform planeTransform;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -98,23 +103,33 @@ public class ComputeSetup : MonoBehaviour
 
 
         List<BoundaryParticle> boundaryList = new List<BoundaryParticle>();
-        //Walls
-        for (int i = -10; i < wallSize - 10; i++)
+
+        ////Walls
+        //for (int i = -10; i < wallSize - 10; i++)
+        //{
+        //    for (int j = 0; j < wallSize; j++)
+        //    {
+        //        for (int k = 0; k < wallSize; k++)
+        //        {
+        //            if (i != -10 && i != 9 && j != 0 && j != 19 && k == 1)
+        //            {
+        //                k += 18;
+        //            }
+        //            BoundaryParticle p = new BoundaryParticle();
+        //            p.position = new Vector3(k, i, j);
+        //            boundaryList.Add(p);
+        //        }
+        //    }
+        //}
+
+        Vector3[] Vertices = planeMesh.vertices;
+        for (int i =0; i < Vertices.Length; i++)
         {
-            for (int j = 0; j < wallSize; j++)
-            {
-                for (int k = 0; k < wallSize; k++)
-                {
-                    if(i!=-10 && i != 9 && j!=0 && j!=19 && k == 1)
-                    {
-                        k += 18;
-                    }
-                    BoundaryParticle p = new BoundaryParticle();
-                    p.position = new Vector3(k, i, j);
-                    boundaryList.Add(p);
-                }
-            }
+            BoundaryParticle p = new BoundaryParticle();
+            p.position = planeTransform.TransformPoint(Vertices[i]);
+            boundaryList.Add(p);
         }
+
         boundaryParticles = boundaryList.ToArray();
         bCountInt = boundaryParticles.Length;
     }
@@ -123,10 +138,10 @@ public class ComputeSetup : MonoBehaviour
     {
         renderedFluidParticles = new GameObject[Particles.Length];
         renderedBoundaryParticles = new GameObject[boundaryParticles.Length];
-        GameObject wallParent = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        wallParent.transform.position = new Vector3(10, 0, 10);
-        wallParent.transform.localScale = new Vector3(20, 20, 20);
-        wallParent.GetComponent<MeshRenderer>().enabled = false;
+        //GameObject wallParent = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        //wallParent.transform.position = new Vector3(10, 0, 10);
+        //wallParent.transform.localScale = new Vector3(20, 20, 20);
+        //wallParent.GetComponent<MeshRenderer>().enabled = false;
         for (int i = 0; i < Particles.Length; i++)
         {
             renderedFluidParticles[i] = GameObject.CreatePrimitive(PrimitiveType.Sphere);
@@ -137,7 +152,7 @@ public class ComputeSetup : MonoBehaviour
         for(int i = 0;i < boundaryParticles.Length;i++)
         {
             renderedBoundaryParticles[i] = new GameObject();
-            renderedBoundaryParticles[i].transform.SetParent(wallParent.transform, false);
+            renderedBoundaryParticles[i].transform.SetParent(planeTransform.transform, false); // Amúgy a kikommentezett wallParent volt
             renderedBoundaryParticles[i].name = "b_" + i;
             renderedBoundaryParticles[i].transform.position = boundaryParticles[i].position;
         }

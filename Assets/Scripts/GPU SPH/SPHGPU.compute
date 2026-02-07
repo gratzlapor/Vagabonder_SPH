@@ -47,7 +47,7 @@ RWStructuredBuffer<boundaryParticle> boundaryParticles;
 
 
 
-[numthreads(16, 1, 1)]
+[numthreads(18, 1, 1)]
 void CalculateVariables(uint3 id : SV_DispatchThreadID) // Density and Pressure
 {   
     float density = float(0);
@@ -74,7 +74,7 @@ void CalculateVariables(uint3 id : SV_DispatchThreadID) // Density and Pressure
     Particles[id.x].pressure = ((gasConstant * restDensity) / exponent) * (pow(Particles[id.x].density / restDensity, exponent) - 1);
 }
 
-[numthreads(16, 1, 1)]
+[numthreads(18, 1, 1)]
 void CalculateForces(uint3 id : SV_DispatchThreadID) // PressureForce and ViscosityForce (Vector3)
 {
     float3 pressureForce = float3(0, 0, 0);
@@ -103,7 +103,7 @@ void CalculateForces(uint3 id : SV_DispatchThreadID) // PressureForce and Viscos
     Particles[id.x].viscosityForce = viscosityForce * fluidResistance;
 }
 
-[numthreads(16, 1, 1)]
+[numthreads(18, 1, 1)]
 void CalculatePosition(uint3 id : SV_DispatchThreadID)
 {
     float3 gravityForce = float3(0, gravity, 0);
