@@ -1,8 +1,9 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 using NUnit.Framework;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
 using static UnityEngine.ParticleSystem;
 
@@ -20,41 +21,50 @@ public struct Particle // 68bytes
 }
 
 [System.Serializable]
-[StructLayout(LayoutKind.Sequential, Size = 16)]
+[StructLayout(LayoutKind.Sequential, Size = 12)]
 public struct BoundaryParticle // 16bytes
 {
-    public float boundaryMass;
     public float3 position;
 }
 public class ComputeSetup : MonoBehaviour
 {
     ComputeBuffer particleBuffer;
     ComputeBuffer boundaryBuffer;
+    ComputeBuffer startingPosBuffer;
     public ComputeShader computeShader;
     int calcVariablesKernel;
     int calcForcesKernel;
     int calcPosition;
     public Particle[] Particles;
     public BoundaryParticle[] boundaryParticles;
+    public Vector4[] startingPositions;
     GameObject[] renderedFluidParticles;
     GameObject[] renderedBoundaryParticles;
-    Vector3 wCountVector = new Vector3(8,6,9); // 8*6*8 = 432
+    Vector3 wCountVector = new Vector3(32,10,32); 
     int wCountInt;
-    int bCountInt; // 1764
+    int bCountInt;
     int wallSize = 20;
-    int threads = 18; // Frissítsd az gpu oldalt is
+    int threads = 256; // FrissÃ­tsd az gpu oldalt is
 
+    [Header("Variables")]
+    public float restDensity;
+    public float spacing;
+    public float boundaryMass;
+    public float radius;
 
     [Header("Plane")]
     [SerializeField] Mesh planeMesh;
     [SerializeField] Transform planeTransform;
-    public float spacing;
+
+    private void Awake()
+    {
+        ParticleSetup();
+        RenderSetup();
+    }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        ParticleSetup();
-        RenderSetup();
         CalculateSpacing();
         BufferAndDispatchSetup();
     }
@@ -62,18 +72,18 @@ public class ComputeSetup : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        computeShader.Dispatch(calcVariablesKernel, (Particles.Length) / threads, 1, 1);
-        computeShader.Dispatch(calcForcesKernel, (Particles.Length) / threads, 1, 1);
-        computeShader.Dispatch(calcPosition, (Particles.Length) / threads, 1, 1);
+        computeShader.Dispatch(calcVariablesKernel, Particles.Length / threads, 1, 1);
+        computeShader.Dispatch(calcForcesKernel, Particles.Length / threads, 1, 1);
+        computeShader.Dispatch(calcPosition, Particles.Length / threads, 1, 1);
 
         particleBuffer.GetData(Particles);
-        boundaryBuffer.GetData(boundaryParticles);
+        //boundaryBuffer.GetData(boundaryParticles);
 
         RenderParticlesUpdate();
-        RenderBoundaryParticlesUpdate();
+        //RenderBoundaryParticlesUpdate();
 
         particleBuffer.SetData(Particles);
-        boundaryBuffer.SetData(boundaryParticles);
+        //boundaryBuffer.SetData(boundaryParticles);
 
     }
 
@@ -86,6 +96,7 @@ public class ComputeSetup : MonoBehaviour
     void ParticleSetup()
     {
         List<Particle> fluidList = new List<Particle>();
+        List<Vector4> startingPositionsList = new List<Vector4>();
 
         // Water
         for (int i = 0; i < wCountVector.x; i++)
@@ -97,10 +108,12 @@ public class ComputeSetup : MonoBehaviour
                     Particle p = new Particle();
                     p.position = new Vector3(transform.position.x+i, transform.position.y+j, transform.position.z+k);
                     fluidList.Add(p);
+                    startingPositionsList.Add(new Vector4(p.position.x, p.position.y, p.position.z, 0f));
                 }
             }
         }
         Particles = fluidList.ToArray();
+        startingPositions = startingPositionsList.ToArray();
         wCountInt = Particles.Length;
 
 
@@ -125,14 +138,12 @@ public class ComputeSetup : MonoBehaviour
         //}
 
         Vector3[] Vertices = planeMesh.vertices;
+        boundaryParticles = new BoundaryParticle[Vertices.Length];
         for (int i =0; i < Vertices.Length; i++)
         {
-            BoundaryParticle p = new BoundaryParticle();
-            p.position = planeTransform.TransformPoint(Vertices[i]);
-            boundaryList.Add(p);
+            boundaryParticles[i].position = planeTransform.TransformPoint(Vertices[i]);
         }
 
-        boundaryParticles = boundaryList.ToArray();
         bCountInt = boundaryParticles.Length;
     }
 
@@ -147,17 +158,17 @@ public class ComputeSetup : MonoBehaviour
         for (int i = 0; i < Particles.Length; i++)
         {
             renderedFluidParticles[i] = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            renderedFluidParticles[i].transform.localScale = new Vector3(1f, 1f, 1f);
+            renderedFluidParticles[i].transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
             renderedFluidParticles[i].name = "p_" + i;
             renderedFluidParticles[i].transform.position = Particles[i].position;
         }
-        for(int i = 0;i < boundaryParticles.Length;i++)
-        {
-            renderedBoundaryParticles[i] = new GameObject();
-            renderedBoundaryParticles[i].transform.SetParent(planeTransform.transform, false); // Amúgy a kikommentezett wallParent volt
-            renderedBoundaryParticles[i].name = "b_" + i;
-            renderedBoundaryParticles[i].transform.position = boundaryParticles[i].position;
-        }
+        //for(int i = 0;i < boundaryParticles.Length;i++)
+        //{
+        //    renderedBoundaryParticles[i] = new GameObject();
+        //    renderedBoundaryParticles[i].transform.SetParent(planeTransform.transform, false); // AmÃºgy a kikommentezett wallParent volt
+        //    renderedBoundaryParticles[i].name = "b_" + i;
+        //    renderedBoundaryParticles[i].transform.position = boundaryParticles[i].position;
+        //}
     }
 
     void CalculateSpacing()
@@ -166,18 +177,15 @@ public class ComputeSetup : MonoBehaviour
         float sum = 0f;
         int count = 0;
 
-        for (int i = 0; i < renderedBoundaryParticles.Length; i++)
+        for (int i = 0; i < boundaryParticles.Length; i++)
         {
             float minDist = float.MaxValue;
 
-            for (int j = 0; j < renderedBoundaryParticles.Length; j++)
+            for (int j = 0; j < boundaryParticles.Length; j++)
             {
                 if (i == j) continue;
 
-                float d = Vector3.Distance(
-                    renderedBoundaryParticles[i].transform.position,
-                    renderedBoundaryParticles[j].transform.position
-                );
+                float d = Vector3.Distance(boundaryParticles[i].position, boundaryParticles[j].position);
 
                 if (d < minDist)
                 {
@@ -190,15 +198,23 @@ public class ComputeSetup : MonoBehaviour
         }
 
         spacing = sum / count;
+
+        boundaryMass = 1;
+
+        radius = spacing * 2f;
+
+        restDensity = 0.90f;
     }
 
     void BufferAndDispatchSetup()
     {
         particleBuffer = new ComputeBuffer(Particles.Length, 68);
-        boundaryBuffer = new ComputeBuffer(boundaryParticles.Length, 16);
+        boundaryBuffer = new ComputeBuffer(boundaryParticles.Length, 12);
+        startingPosBuffer = new ComputeBuffer(startingPositions.Length, sizeof(float) * 4);
 
         particleBuffer.SetData(Particles);
         boundaryBuffer.SetData(boundaryParticles);
+        startingPosBuffer.SetData(startingPositions);
 
         calcVariablesKernel = computeShader.FindKernel("CalculateVariables");
         calcForcesKernel = computeShader.FindKernel("CalculateForces");
@@ -206,18 +222,22 @@ public class ComputeSetup : MonoBehaviour
 
         computeShader.SetFloat("pi", 3.1415f);
         computeShader.SetFloat("mass", 1f);
-        computeShader.SetFloat("radius", 2f);
-        computeShader.SetFloat("radius2", 4f); 
-        computeShader.SetFloat("gasConstant", 20f);
+        computeShader.SetFloat("boundaryMass", boundaryMass);
+        computeShader.SetFloat("radius", radius);
+        computeShader.SetFloat("radius2", radius*radius); 
+        computeShader.SetFloat("gasConstant", 80f);
         computeShader.SetFloat("exponent", 7f);
-        computeShader.SetFloat("restDensity", 0.35f);
+        computeShader.SetFloat("restDensity", restDensity);
         computeShader.SetFloat("fluidResistance", 0.1f);
         computeShader.SetFloat("gravity", -9.81f);
-        computeShader.SetFloat("timeStep", 0.01f);
-        computeShader.SetFloat("friction", 0.99f);
+        computeShader.SetFloat("timeStep", 0.008f);
+        computeShader.SetFloat("friction", 0.995f);
+
         computeShader.SetInt("wParticleCount", wCountInt);
         computeShader.SetInt("bParticleCount", bCountInt);
-        computeShader.SetInt("allParticlesCount", Particles.Length + boundaryParticles.Length); 
+        computeShader.SetInt("allParticlesCount", Particles.Length + boundaryParticles.Length);
+
+        computeShader.SetVectorArray("startingPositions", startingPositions);
 
         computeShader.SetBuffer(calcVariablesKernel, "Particles",particleBuffer);
         computeShader.SetBuffer(calcForcesKernel, "Particles", particleBuffer);
@@ -226,6 +246,8 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetBuffer(calcVariablesKernel, "boundaryParticles", boundaryBuffer);
         computeShader.SetBuffer(calcForcesKernel, "boundaryParticles", boundaryBuffer);
         computeShader.SetBuffer(calcPosition, "boundaryParticles", boundaryBuffer);
+
+        computeShader.SetBuffer(calcPosition, "startingPositions", startingPosBuffer);
     }
 
     void RenderParticlesUpdate()
