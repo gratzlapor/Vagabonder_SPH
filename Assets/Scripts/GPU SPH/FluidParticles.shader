@@ -3,7 +3,7 @@
     Properties
     {
         _Scale ("Scale", Float) = 0.5
-        _DensityMin ("Pressure Min", Float) = 0
+        _DensityMin ("Pressure Min", Float) = 150
         _DensityMax ("Pressure Max", Float) = 800
     }
 

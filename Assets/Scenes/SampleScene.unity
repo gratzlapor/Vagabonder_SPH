@@ -167,12 +167,16 @@ MonoBehaviour:
   boundaryParticles: []
   particleMesh: {fileID: 7718881313391987186, guid: 19bc855ba9ccf3c4d9099c6786476f4b, type: 3}
   particleMaterial: {fileID: 2100000, guid: 0b201137b1b33d54aa3145f4528ce434, type: 2}
-  restDensity: 0.85
   spacing: 0
-  boundaryMass: 0
   radius: 0
-  planeMesh: {fileID: -7537574714207838072, guid: 062a322e354aa9245aae1531353fd833, type: 3}
-  planeTransform: {fileID: 1954157552}
+  spacingMultiplier: 1.4
+  restDensity: 0.9
+  boundaryMass: 5
+  wind: 5
+  pressureMin: 0
+  pressureMax: 0
+  planeMesh: {fileID: 1752095683776959260, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+  planeTransform: {fileID: 2058435159}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -542,15 +546,80 @@ PrefabInstance:
       propertyPath: m_Name
       value: Fluvial_Plane_3
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 062a322e354aa9245aae1531353fd833, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 062a322e354aa9245aae1531353fd833, type: 3}
---- !u!4 &1954157552 stripped
+--- !u!1001 &2058435158
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 65
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 150
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 7d2a8374509bc20479d31549fa8f2f13, type: 2}
+    - target: {fileID: 919132149155446097, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+      propertyPath: m_Name
+      value: Fluvial_Plane_3_alt
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+--- !u!4 &2058435159 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 062a322e354aa9245aae1531353fd833, type: 3}
-  m_PrefabInstance: {fileID: 1954157551}
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3bc834e4ef187524d99f753357a0cd88, type: 3}
+  m_PrefabInstance: {fileID: 2058435158}
   m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
@@ -561,3 +630,4 @@ SceneRoots:
   - {fileID: 832575519}
   - {fileID: 120906228}
   - {fileID: 1954157551}
+  - {fileID: 2058435158}
