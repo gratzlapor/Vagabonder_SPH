@@ -77,8 +77,8 @@ public class ComputeSetup : MonoBehaviour
     {
         particleMaterial.SetBuffer("Particles", particleBuffer);
 
-        particleMaterial.SetFloat("_DensityMin", 0.9f);
-        particleMaterial.SetFloat("_DensityMax", 1.6f);
+        particleMaterial.SetFloat("_PressureMin", 0f);
+        particleMaterial.SetFloat("_PressureMax", 800f);
         Graphics.DrawMeshInstancedProcedural(particleMesh, 0, particleMaterial, renderBounds, Particles.Length);
     }
 
@@ -94,6 +94,22 @@ public class ComputeSetup : MonoBehaviour
         //RenderBoundaryParticlesUpdate();
 
         //boundaryBuffer.SetData(boundaryParticles);
+
+
+        //if (Time.frameCount % 60 != 0) return;
+
+        //particleBuffer.GetData(Particles);
+
+        //float min = float.MaxValue;
+        //float max = float.MinValue;
+
+        //for (int i = 0; i < Particles.Length; i++)
+        //{
+        //    min = Mathf.Min(min, Particles[i].pressure);
+        //    max = Mathf.Max(max, Particles[i].pressure);
+        //}
+
+        //Debug.Log($"Density range: {min} → {max}");
     }
 
     private void OnDestroy()
@@ -198,7 +214,7 @@ public class ComputeSetup : MonoBehaviour
 
         spacing = minDist;
 
-        boundaryMass = 1;
+        boundaryMass = 5f;
 
         radius = spacing * 1.5f;
 
@@ -231,7 +247,7 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetFloat("fluidResistance", 0.1f);
         computeShader.SetFloat("gravity", -9.81f);
         computeShader.SetFloat("timeStep", 0.008f);
-        computeShader.SetFloat("friction", 0.995f);
+        computeShader.SetFloat("friction", 0.9965f);
 
         computeShader.SetVector("boxPosition", new Vector4(transform.position.x, transform.position.y, transform.position.z));
         computeShader.SetVector("boxSize", new Vector4(wCountVector.x, wCountVector.y, wCountVector.z));

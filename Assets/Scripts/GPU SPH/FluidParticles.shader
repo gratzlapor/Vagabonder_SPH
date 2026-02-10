@@ -3,8 +3,8 @@
     Properties
     {
         _Scale ("Scale", Float) = 0.5
-        _DensityMin ("Density Min", Float) = 0.9
-        _DensityMax ("Density Max", Float) = 1.6
+        _DensityMin ("Pressure Min", Float) = 0
+        _DensityMax ("Pressure Max", Float) = 800
     }
 
     SubShader
@@ -36,8 +36,8 @@
             StructuredBuffer<particle> Particles;
 
             float _Scale;
-            float _DensityMin;
-            float _DensityMax;
+            float _PressureMin;
+            float _PressureMax;
 
             struct Attributes
             {
@@ -63,8 +63,8 @@
 
             half4 frag(Varyings IN) : SV_Target
             {
-                float d = Particles[IN.instanceID].density;
-                float t = saturate((d - _DensityMin) / (_DensityMax - _DensityMin));
+                float d = Particles[IN.instanceID].pressure;
+                float t = saturate((d - _PressureMin) / (_PressureMax - _PressureMin));
                 // Blue → Red gradient
                 float3 color = lerp(float3(0.0, 0.0, 1.0), float3(1.0, 0.0, 0.0),t);
                 return float4(color, 1.0);
