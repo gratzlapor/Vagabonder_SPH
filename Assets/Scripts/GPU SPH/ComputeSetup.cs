@@ -35,16 +35,21 @@ public class ComputeSetup : MonoBehaviour
     int calcVariablesKernel;
     int calcForcesKernel;
     int calcPosition;
-    public Particle[] Particles;
+    Particle[] Particles;
     public BoundaryParticle[] boundaryParticles;
-    public Vector4[] startingPositions;
-    GameObject[] renderedFluidParticles;
+    Vector4[] startingPositions;
     GameObject[] renderedBoundaryParticles;
     Vector3 wCountVector = new Vector3(32,10,32); 
     int wCountInt;
     int bCountInt;
     int wallSize = 20;
     int threads = 256; // Frissítsd az gpu oldalt is
+
+    [Header("Render")]
+    [SerializeField] Mesh particleMesh;
+    [SerializeField] Material particleMaterial;
+    Bounds renderBounds;
+
 
     [Header("Variables")]
     public float restDensity;
@@ -59,14 +64,23 @@ public class ComputeSetup : MonoBehaviour
     private void Awake()
     {
         ParticleSetup();
-        RenderSetup();
+        CalculateSpacing();
+        BufferAndDispatchSetup();
     }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        CalculateSpacing();
-        BufferAndDispatchSetup();
+        renderBounds = new Bounds(transform.position, Vector3.one * 1000f);
+    }
+
+    void Update()
+    {
+        particleMaterial.SetBuffer("Particles", particleBuffer);
+
+        particleMaterial.SetFloat("_DensityMin", 0.9f);
+        particleMaterial.SetFloat("_DensityMax", 1.6f);
+        Graphics.DrawMeshInstancedProcedural(particleMesh, 0, particleMaterial, renderBounds, Particles.Length);
     }
 
     // Update is called once per frame
@@ -76,14 +90,12 @@ public class ComputeSetup : MonoBehaviour
         computeShader.Dispatch(calcForcesKernel, Particles.Length / threads, 1, 1);
         computeShader.Dispatch(calcPosition, Particles.Length / threads, 1, 1);
 
-        particleBuffer.GetData(Particles);
         //boundaryBuffer.GetData(boundaryParticles);
 
-        RenderParticlesUpdate();
         //RenderBoundaryParticlesUpdate();
 
-        particleBuffer.SetData(Particles);
         //boundaryBuffer.SetData(boundaryParticles);
+
 
     }
 
@@ -91,6 +103,7 @@ public class ComputeSetup : MonoBehaviour
     {
         particleBuffer.Dispose();
         boundaryBuffer.Dispose();
+        startingPosBuffer.Dispose();
     }
 
     void ParticleSetup()
@@ -149,59 +162,39 @@ public class ComputeSetup : MonoBehaviour
 
     void RenderSetup()
     {
-        renderedFluidParticles = new GameObject[Particles.Length];
         renderedBoundaryParticles = new GameObject[boundaryParticles.Length];
-        //GameObject wallParent = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        //wallParent.transform.position = new Vector3(10, 0, 10);
-        //wallParent.transform.localScale = new Vector3(20, 20, 20);
-        //wallParent.GetComponent<MeshRenderer>().enabled = false;
-        for (int i = 0; i < Particles.Length; i++)
+        GameObject wallParent = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        wallParent.transform.position = new Vector3(10, 0, 10);
+        wallParent.transform.localScale = new Vector3(20, 20, 20);
+        wallParent.GetComponent<MeshRenderer>().enabled = false;
+
+        for (int i = 0; i < boundaryParticles.Length; i++)
         {
-            renderedFluidParticles[i] = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            renderedFluidParticles[i].transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
-            renderedFluidParticles[i].name = "p_" + i;
-            renderedFluidParticles[i].transform.position = Particles[i].position;
+            renderedBoundaryParticles[i] = new GameObject();
+            renderedBoundaryParticles[i].transform.SetParent(planeTransform.transform, false); // Amúgy a kikommentezett wallParent volt
+            renderedBoundaryParticles[i].name = "b_" + i;
+            renderedBoundaryParticles[i].transform.position = boundaryParticles[i].position;
         }
-        //for(int i = 0;i < boundaryParticles.Length;i++)
-        //{
-        //    renderedBoundaryParticles[i] = new GameObject();
-        //    renderedBoundaryParticles[i].transform.SetParent(planeTransform.transform, false); // Amúgy a kikommentezett wallParent volt
-        //    renderedBoundaryParticles[i].name = "b_" + i;
-        //    renderedBoundaryParticles[i].transform.position = boundaryParticles[i].position;
-        //}
     }
 
     void CalculateSpacing()
     {
 
-        float sum = 0f;
-        int count = 0;
+        Vector3 p0 = boundaryParticles[boundaryParticles.Length/2].position;
+        float minDist = float.MaxValue;
 
-        for (int i = 0; i < boundaryParticles.Length; i++)
+        for (int i = 1; i < boundaryParticles.Length; i++)
         {
-            float minDist = float.MaxValue;
-
-            for (int j = 0; j < boundaryParticles.Length; j++)
-            {
-                if (i == j) continue;
-
-                float d = Vector3.Distance(boundaryParticles[i].position, boundaryParticles[j].position);
-
-                if (d < minDist)
-                {
-                    minDist = d;
-                }
-            }
-
-            sum += minDist;
-            count++;
+            float d = Vector3.Distance(p0, boundaryParticles[i].position);
+            if (d > 0f && d < minDist)
+                minDist = d;
         }
 
-        spacing = sum / count;
+        spacing = minDist;
 
         boundaryMass = 1;
 
-        radius = spacing * 2f;
+        radius = spacing * 1.5f;
 
         restDensity = 0.90f;
     }
@@ -215,6 +208,7 @@ public class ComputeSetup : MonoBehaviour
         particleBuffer.SetData(Particles);
         boundaryBuffer.SetData(boundaryParticles);
         startingPosBuffer.SetData(startingPositions);
+
 
         calcVariablesKernel = computeShader.FindKernel("CalculateVariables");
         calcForcesKernel = computeShader.FindKernel("CalculateForces");
@@ -248,14 +242,8 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetBuffer(calcPosition, "boundaryParticles", boundaryBuffer);
 
         computeShader.SetBuffer(calcPosition, "startingPositions", startingPosBuffer);
-    }
 
-    void RenderParticlesUpdate()
-    {
-        for (int i = 0; i < Particles.Length; i++)
-        {
-            renderedFluidParticles[i].transform.position = Particles[i].position;
-        }
+        particleMaterial.SetBuffer("Particles", particleBuffer);
     }
 
     void RenderBoundaryParticlesUpdate()

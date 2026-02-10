@@ -145,7 +145,7 @@ Transform:
   m_GameObject: {fileID: 120906226}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 50, y: 25, z: 55}
+  m_LocalPosition: {x: 50, y: 25, z: 50}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -164,9 +164,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ComputeSetup
   computeShader: {fileID: 7200000, guid: 516e4ae6e2a1334499ba4b1d6d3754cd, type: 3}
-  Particles: []
   boundaryParticles: []
-  startingPositions: []
+  particleMesh: {fileID: 7718881313391987186, guid: 19bc855ba9ccf3c4d9099c6786476f4b, type: 3}
+  particleMaterial: {fileID: 2100000, guid: 0b201137b1b33d54aa3145f4528ce434, type: 2}
   restDensity: 0.85
   spacing: 0
   boundaryMass: 0
@@ -496,7 +496,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 062a322e354aa9245aae1531353fd833, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 55
+      value: 65
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 062a322e354aa9245aae1531353fd833, type: 3}
       propertyPath: m_LocalPosition.y
