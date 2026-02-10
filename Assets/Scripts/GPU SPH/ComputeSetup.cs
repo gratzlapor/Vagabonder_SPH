@@ -39,10 +39,9 @@ public class ComputeSetup : MonoBehaviour
     public BoundaryParticle[] boundaryParticles;
     Vector4[] startingPositions;
     GameObject[] renderedBoundaryParticles;
-    Vector3 wCountVector = new Vector3(32,10,32); 
+    Vector3 wCountVector = new Vector3(10,32,32); 
     int wCountInt;
     int bCountInt;
-    int wallSize = 20;
     int threads = 256; // Frissítsd az gpu oldalt is
 
     [Header("Render")]
@@ -95,8 +94,6 @@ public class ComputeSetup : MonoBehaviour
         //RenderBoundaryParticlesUpdate();
 
         //boundaryBuffer.SetData(boundaryParticles);
-
-
     }
 
     private void OnDestroy()
@@ -106,10 +103,19 @@ public class ComputeSetup : MonoBehaviour
         startingPosBuffer.Dispose();
     }
 
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireCube(new Vector3(transform.position.x,transform.position.y,transform.position.z+16), new Vector3(wCountVector.x,wCountVector.y,wCountVector.z+32));
+    }
+
     void ParticleSetup()
     {
         List<Particle> fluidList = new List<Particle>();
         List<Vector4> startingPositionsList = new List<Vector4>();
+        int adjustx = (int)wCountVector.x / 2;
+        int adjusty = (int)wCountVector.y / 2;
+        int adjustz = (int)wCountVector.z / 2;
 
         // Water
         for (int i = 0; i < wCountVector.x; i++)
@@ -119,7 +125,7 @@ public class ComputeSetup : MonoBehaviour
                 for (int k = 0; k < wCountVector.z; k++)
                 {
                     Particle p = new Particle();
-                    p.position = new Vector3(transform.position.x+i, transform.position.y+j, transform.position.z+k);
+                    p.position = new Vector3(transform.position.x+i - adjustx, transform.position.y+j- adjusty, transform.position.z+k - adjustz);
                     fluidList.Add(p);
                     startingPositionsList.Add(new Vector4(p.position.x, p.position.y, p.position.z, 0f));
                 }
@@ -131,7 +137,7 @@ public class ComputeSetup : MonoBehaviour
 
 
         List<BoundaryParticle> boundaryList = new List<BoundaryParticle>();
-
+        //int wallSize = 20;
         ////Walls
         //for (int i = -10; i < wallSize - 10; i++)
         //{
@@ -226,6 +232,9 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetFloat("gravity", -9.81f);
         computeShader.SetFloat("timeStep", 0.008f);
         computeShader.SetFloat("friction", 0.995f);
+
+        computeShader.SetVector("boxPosition", new Vector4(transform.position.x, transform.position.y, transform.position.z));
+        computeShader.SetVector("boxSize", new Vector4(wCountVector.x, wCountVector.y, wCountVector.z));
 
         computeShader.SetInt("wParticleCount", wCountInt);
         computeShader.SetInt("bParticleCount", bCountInt);

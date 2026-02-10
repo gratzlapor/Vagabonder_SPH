@@ -36,6 +36,9 @@ float gravity;
 float timeStep;
 float friction;
 
+float4 boxPosition;
+float4 boxSize;
+
 int allParticlesCount;
 uint wParticleCount;
 uint bParticleCount;
@@ -127,10 +130,52 @@ void CalculatePosition(uint3 id : SV_DispatchThreadID)
     newPos = Particles[id.x].position + timeStep * Particles[id.x].velocity;
     Particles[id.x].position = newPos;
     
-    // Reset position if particles reaches the end
-    if (Particles[id.x].position.y < -25 || Particles[id.x].position.y > 50)
+    
+    if (Particles[id.x].position.z < boxPosition.z + boxSize.z*1.5)
     {
-        Particles[id.x].position = float3(startingPositions[id.x].x, startingPositions[id.x].y, startingPositions[id.x].z);
-        Particles[id.x].velocity = float3(0,0,0);
+        float3 boxP3 = float3(boxPosition.x, boxPosition.y, boxPosition.z);
+        float3 boxS3 = float3(boxSize.x, boxSize.y, boxSize.z);
+        float boundDamping = -float(0.5);
+        float3 topRight = boxP3 + (boxS3 / 2);
+        float3 bottomLeft = boxP3 - (boxS3 / 2);
+    
+        if (Particles[id.x].position.x - radius < bottomLeft.x)
+        {
+            Particles[id.x].velocity.x *= boundDamping;
+            Particles[id.x].position.x = bottomLeft.x + radius;
+        }
+
+        if (Particles[id.x].position.y - radius < bottomLeft.y)
+        {
+            Particles[id.x].velocity.y *= boundDamping;
+            Particles[id.x].position.y = bottomLeft.y + radius;
+        }
+
+        if (Particles[id.x].position.z - radius < bottomLeft.z)
+        {
+            Particles[id.x].velocity.z *= boundDamping;
+            Particles[id.x].position.z = bottomLeft.z + radius;
+        }
+
+        if (Particles[id.x].position.x + radius > topRight.x)
+        {
+            Particles[id.x].velocity.x *= boundDamping;
+            Particles[id.x].position.x = topRight.x - radius;
+        }
+
+        if (Particles[id.x].position.y + radius > topRight.y)
+        {
+            Particles[id.x].velocity.y *= boundDamping;
+            Particles[id.x].position.y = topRight.y - radius;
+        }   
     }
+    else
+    {
+        if (Particles[id.x].position.y < -25 || Particles[id.x].position.y > 50)
+        {
+            Particles[id.x].position = float3(startingPositions[id.x].x, startingPositions[id.x].y, startingPositions[id.x].z);
+            Particles[id.x].velocity = float3(0, 0, 0);
+        }
+    }
+
 }
