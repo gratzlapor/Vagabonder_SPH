@@ -24,6 +24,15 @@
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
+
+            struct boundaryParticle
+            {
+                float3 position;
+            };
+
+            StructuredBuffer<boundaryParticle> boundaryParticles;
+
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -35,6 +44,8 @@
                 float y : TEXCOORD0;
             };
 
+
+
             float _MinY;
             float _MaxY;
             float4 _BrownColor;
@@ -43,13 +54,27 @@
             float _SandHeight;
             float _SandBlend;
 
-            Varyings vert (Attributes v)
+            Varyings vert (Attributes v, uint vertexID : SV_VertexID)
             {
                 Varyings o;
-                o.positionHCS = TransformObjectToHClip(v.positionOS.xyz);
-                o.y = v.positionOS.y; // LOCAL Y
+
+                // Original object position
+                float3 posOS = v.positionOS.xyz;
+
+                // Get world position from boundary buffer
+                float3 boundaryWS = boundaryParticles[vertexID].position;
+
+                // Convert world → object space
+                float3 boundaryOS = TransformWorldToObject(boundaryWS);
+
+                // Replace only Y in object space
+                posOS.y = boundaryOS.y;
+
+                o.positionHCS = TransformObjectToHClip(posOS);
+                o.y = boundaryWS.y; // use world height for coloring
+
                 return o;
-            }
+            }   
 
             half4 frag (Varyings i) : SV_Target
             {

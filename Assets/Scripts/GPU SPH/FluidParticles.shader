@@ -30,6 +30,7 @@
                 float3 acceleration;
                 float3 velocity;
                 float3 position;
+                float starter;
             };
 
             

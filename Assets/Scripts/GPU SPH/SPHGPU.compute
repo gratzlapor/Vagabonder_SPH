@@ -2,6 +2,9 @@
 #pragma kernel CalculateVariables
 #pragma kernel CalculateForces
 #pragma kernel CalculatePosition
+#pragma kernel FluvialHeightGain
+#pragma kernel FluvialHeightLost
+#pragma kernel HeightSmoothing
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
@@ -15,6 +18,7 @@ struct particle
     float3 acceleration;
     float3 velocity;
     float3 position;
+    float starter;
 };
 
 struct boundaryParticle
@@ -29,6 +33,10 @@ float boundaryMass;
 float spacingMultiplier;
 float radius;
 float radius2;
+float radius3;
+float boundaryRadius;
+float boundaryRadius2;
+
 float gasConstant;
 float exponent;
 float restDensity;
@@ -37,6 +45,8 @@ float gravity;
 float timeStep;
 float friction;
 float wind;
+
+float smoothRadius;
 
 float4 boxPosition;
 float4 boxSize;
@@ -72,16 +82,9 @@ void CalculateVariables(uint3 id : SV_DispatchThreadID) // Density and Pressure
     {   
         float3 substract_ = Particles[id.x].position - boundaryParticles[j].position;
         float difference2_ = dot(substract_, substract_);
-        if (difference2_ <= radius2) // if 0<r<h
+        if (difference2_ <= boundaryRadius2) // if 0<r<h
         {
-            if (boundaryParticles[j].position.y >= 16.5 && boundaryParticles[j].position.y <= 19.25)
-            {
-                densityB += boundaryMass * (315 / (64 * pi * pow(abs(radius), 9))) * pow(radius2 - difference2_, 3);
-            }
-            else
-            {
-                densityB += mass * (315 / (64 * pi * pow(abs(radius), 9))) * pow(radius2 - difference2_, 3);
-            }
+            densityB += boundaryMass * (315 / (64 * pi * pow(abs(boundaryRadius), 9))) * pow(boundaryRadius2 - difference2_, 3);
         }
     }
     
@@ -109,18 +112,11 @@ void CalculateForces(uint3 id : SV_DispatchThreadID) // PressureForce and Viscos
     for (int j = 0; j < bParticleCount; j++)
     {
         float difference_ = distance(Particles[id.x].position, boundaryParticles[j].position);
-        if (difference_ > 0 && difference_ <= radius) // if 0<r<h
+        if (difference_ > 0 && difference_ <= boundaryRadius) // if 0<r<h
         {
             float3 direction = normalize(Particles[id.x].position - boundaryParticles[j].position); // r/|r|
-            float3 gradW = -(45 / (pi * pow(radius, 6))) * (direction * pow(radius - difference_, 2));
-            if (boundaryParticles[j].position.y >= 16.5 && boundaryParticles[j].position.y <= 19.25)
-            {
-                pressureForceB += boundaryMass * (Particles[id.x].pressure / (Particles[id.x].density * Particles[id.x].density)) * gradW;
-            }
-            else
-            {
-                pressureForceB += mass * (Particles[id.x].pressure / (Particles[id.x].density * Particles[id.x].density)) * gradW;
-            }
+            float3 gradW = -(45 / (pi * pow(boundaryRadius, 6))) * (direction * pow(boundaryRadius - difference_, 2));
+            pressureForceB += boundaryMass * (Particles[id.x].pressure / (Particles[id.x].density * Particles[id.x].density)) * gradW;
         }
     }
     
@@ -131,14 +127,7 @@ void CalculateForces(uint3 id : SV_DispatchThreadID) // PressureForce and Viscos
 [numthreads(256, 1, 1)]
 void CalculatePosition(uint3 id : SV_DispatchThreadID)
 {
-    //if (Particles[id.x].position.z < boxPosition.z + boxSize.z * 1.5)
-    //{
-    //    wind = float(5);
-    //}
-    //else
-    //{
-    //    wind = float(3);
-    //}
+    
     float3 externalForce = float3(0, gravity, wind);
     float3 allForces = float3(0,0,0);
     allForces = Particles[id.x].pressureForce + Particles[id.x].viscosityForce;
@@ -153,8 +142,13 @@ void CalculatePosition(uint3 id : SV_DispatchThreadID)
     newPos = Particles[id.x].position + timeStep * Particles[id.x].velocity;
     Particles[id.x].position = newPos;
     
+    if (Particles[id.x].position.z > boxPosition.z + boxSize.z * 2.25)
+    {
+        Particles[id.x].starter = 0;
+    }
     
-    if (Particles[id.x].position.z < boxPosition.z + boxSize.z*1.5)
+    
+    if (Particles[id.x].starter==1)
     {
         float3 boxP3 = float3(boxPosition.x, boxPosition.y, boxPosition.z);
         float3 boxS3 = float3(boxSize.x, boxSize.y, boxSize.z);
@@ -194,11 +188,75 @@ void CalculatePosition(uint3 id : SV_DispatchThreadID)
     }
     else
     {
-        if (Particles[id.x].position.y < -25 || Particles[id.x].position.y > 50)
+        if (Particles[id.x].position.y < 5 || Particles[id.x].position.y > 50)
         {
             Particles[id.x].position = float3(startingPositions[id.x].x, startingPositions[id.x].y, startingPositions[id.x].z);
-            Particles[id.x].velocity = float3(0, 0, 0);
+            Particles[id.x].velocity *= 0.4;
+            Particles[id.x].starter = 1;
         }
+
     }
 
+}
+
+[numthreads(278, 1, 1)]
+void FluvialHeightGain(uint3 id : SV_DispatchThreadID)
+{
+    float posY = boundaryParticles[id.x].position.y;
+    
+    if (posY < 20)
+    {
+        posY += 0.000001;
+    }
+    
+    boundaryParticles[id.x].position.y = posY;
+    
+}
+
+[numthreads(278, 1, 1)]
+void FluvialHeightLost(uint3 id : SV_DispatchThreadID)
+{
+    int counter = 0;
+    for (int j = 0; j < wParticleCount; j++)
+    {
+        float difference_ = distance(boundaryParticles[id.x].position, Particles[j].position);
+        if (difference_ > 0 && difference_ <= radius3) // if 0<r<h
+        {
+            if (boundaryParticles[id.x].position.y > 14.6 && Particles[j].pressure > 100)
+            {
+                boundaryParticles[id.x].position.y -= 0.0001;
+            }
+            counter++;
+        }
+    }
+    if (counter == 0)
+    {
+        if (boundaryParticles[id.x].position.y < 20)
+        {
+            boundaryParticles[id.x].position.y += 0.0001;
+        }
+    }
+}
+
+[numthreads(278, 1, 1)]
+void HeightSmoothing(uint3 id : SV_DispatchThreadID)
+{
+     float sum = 0;
+     int count = 0;
+
+        for (int i = 0; i < bParticleCount; i++)
+        {
+            float2 diffXZ = boundaryParticles[i].position.xz - boundaryParticles[id.x].position.xz;
+            float d2 = dot(diffXZ, diffXZ);
+
+            if (d2 <= smoothRadius)
+            {
+                sum += boundaryParticles[i].position.y;
+                count++;
+            }
+        }
+
+        float avg = sum / max(count, 1);
+
+        boundaryParticles[id.x].position.y = lerp(boundaryParticles[id.x].position.y, avg, 0.03);
 }
