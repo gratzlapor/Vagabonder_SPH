@@ -24,6 +24,7 @@ struct particle
 struct boundaryParticle
 {
     float3 position;
+    float erodable;
 };
 
 //constants and variables
@@ -34,6 +35,7 @@ float spacingMultiplier;
 float radius;
 float radius2;
 float radius3;
+float erosionRadius;
 float boundaryRadius;
 float boundaryRadius2;
 
@@ -50,6 +52,8 @@ float smoothRadius;
 
 float4 boxPosition;
 float4 boxSize;
+
+float4x4 _WorldToLocal;
 
 int allParticlesCount;
 uint wParticleCount;
@@ -151,7 +155,7 @@ void CalculatePosition(uint3 id : SV_DispatchThreadID)
     if (Particles[id.x].starter==1)
     {
         float3 boxP3 = float3(boxPosition.x, boxPosition.y, boxPosition.z);
-        float3 boxS3 = float3(boxSize.x, boxSize.y, boxSize.z);
+        float3 boxS3 = float3(boxSize.x, boxSize.y*2, boxSize.z);
         float boundDamping = -float(0.5);
         float3 topRight = boxP3 + (boxS3 / 2);
         float3 bottomLeft = boxP3 - (boxS3 / 2);
@@ -213,32 +217,39 @@ void FluvialHeightGain(uint3 id : SV_DispatchThreadID)
     
 }
 
-[numthreads(278, 1, 1)]
+[numthreads(203, 1, 1)]
 void FluvialHeightLost(uint3 id : SV_DispatchThreadID)
 {
     int counter = 0;
-    for (int j = 0; j < wParticleCount; j++)
-    {
-        float difference_ = distance(boundaryParticles[id.x].position, Particles[j].position);
-        if (difference_ > 0 && difference_ <= radius3) // if 0<r<h
+    float3 worldPos = boundaryParticles[id.x].position;
+
+    float3 localPos = mul(_WorldToLocal, float4(worldPos, 1.0)).xyz;
+
+        for (int j = 0; j < wParticleCount; j++)
         {
-            if (boundaryParticles[id.x].position.y > 14.6 && Particles[j].pressure > 100)
+            float difference_ = distance(boundaryParticles[id.x].position, Particles[j].position);
+            if (difference_ > 0 && difference_ <= erosionRadius) // if 0<r<h
             {
-                boundaryParticles[id.x].position.y -= 0.0001;
+                if (localPos.y > -5 && Particles[j].pressure > 25 && length(Particles[j].velocity) > 7 && counter < 3 && boundaryParticles[id.x].erodable == 1)
+                {
+                    boundaryParticles[id.x].position.y -= 0.00001;
+                }
             }
-            counter++;
+            if (difference_ > 0 && difference_ <= radius3) // if 0<r<h
+            {
+                counter++;
+            }
         }
-    }
-    if (counter == 0)
-    {
-        if (boundaryParticles[id.x].position.y < 20)
-        {
-            boundaryParticles[id.x].position.y += 0.0001;
-        }
-    }
+    //if (counter == 0)
+    //{
+    //    if (localPos.y < -3.5)
+    //    {
+    //        boundaryParticles[id.x].position.y += 0.000035;
+    //    }
+    //}
 }
 
-[numthreads(278, 1, 1)]
+[numthreads(320, 1, 1)]
 void HeightSmoothing(uint3 id : SV_DispatchThreadID)
 {
      float sum = 0;
@@ -258,5 +269,5 @@ void HeightSmoothing(uint3 id : SV_DispatchThreadID)
 
         float avg = sum / max(count, 1);
 
-        boundaryParticles[id.x].position.y = lerp(boundaryParticles[id.x].position.y, avg, 0.03);
+        boundaryParticles[id.x].position.y = lerp(boundaryParticles[id.x].position.y, avg, 0.075);
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 using NUnit.Framework;
@@ -22,10 +23,11 @@ public struct Particle // 68bytes
 }
 
 [System.Serializable]
-[StructLayout(LayoutKind.Sequential, Size = 12)]
+[StructLayout(LayoutKind.Sequential, Size = 16)]
 public struct BoundaryParticle // 16bytes
 {
     public float3 position;
+    public float erodable;
 }
 
 public class ComputeSetup : MonoBehaviour
@@ -105,11 +107,11 @@ public class ComputeSetup : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-         computeShader.Dispatch(calcVariablesKernel, Particles.Length / threads, 1, 1);
-         computeShader.Dispatch(calcForcesKernel, Particles.Length / threads, 1, 1);
-         computeShader.Dispatch(calcPositionKernel, Particles.Length / threads, 1, 1);
-         //computeShader.Dispatch(fluvHeightLostKernel, boundaryParticles.Length / 278, 1, 1);
-         //computeShader.Dispatch(heightSmoothingKernel, boundaryParticles.Length / 278, 1, 1);
+        computeShader.Dispatch(calcVariablesKernel, Particles.Length / threads, 1, 1);
+        computeShader.Dispatch(calcForcesKernel, Particles.Length / threads, 1, 1);
+        computeShader.Dispatch(calcPositionKernel, Particles.Length / threads, 1, 1);
+        computeShader.Dispatch(fluvHeightLostKernel, boundaryParticles.Length / 203, 1, 1);
+        //computeShader.Dispatch(heightSmoothingKernel, boundaryParticles.Length / 320, 1, 1);
 
         //boundaryBuffer.GetData(boundaryParticles);
 
@@ -153,7 +155,7 @@ public class ComputeSetup : MonoBehaviour
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
-        Gizmos.DrawWireCube(new Vector3(transform.position.x,transform.position.y,transform.position.z+30), new Vector3(wCountVector.x,wCountVector.y,wCountVector.z+60));
+        Gizmos.DrawWireCube(new Vector3(transform.position.x,transform.position.y,transform.position.z+30), new Vector3(wCountVector.x,wCountVector.y*2,wCountVector.z+60));
     }
 
     void ParticleSetup()
@@ -205,14 +207,25 @@ public class ComputeSetup : MonoBehaviour
         //}
 
         Vector3[] Vertices = planeMesh.vertices;
+        Color[] colors = planeMesh.colors;
         boundaryParticles = new BoundaryParticle[Vertices.Length];
         for (int i =0; i < Vertices.Length; i++)
         {
+            bool isHard = colors[i].r > 0.5f;
+            if (isHard)
+            {
+                boundaryParticles[i].erodable = 0;
+            }
+            else
+            {
+                boundaryParticles[i].erodable = 1;
+            }
+            if (Vertices[i].y < -5f)
+            {
+                Vertices[i].y = -5f;
+            }
+
             boundaryParticles[i].position = planeTransform.TransformPoint(Vertices[i]);
-            //if (boundaryParticles[i].position.y < 16.5)
-            //{
-            //    boundaryParticles[i].position.y = 16.5f;
-            //}
         }
 
         bCountInt = boundaryParticles.Length;
@@ -250,7 +263,7 @@ public class ComputeSetup : MonoBehaviour
 
         spacing = minDist;
 
-        boundaryMass = 75f;
+        boundaryMass = 40f;
         fluidMass = 1f;
 
         spacingMultiplier = 1.45f;
@@ -260,7 +273,7 @@ public class ComputeSetup : MonoBehaviour
 
         restDensity = 0.90f;
 
-        wind = 0.5f;
+        wind = 0f;
 
         smoothingRadius = 1;
 
@@ -271,7 +284,7 @@ public class ComputeSetup : MonoBehaviour
     void BufferAndDispatchSetup()
     {
         particleBuffer = new ComputeBuffer(Particles.Length, 72);
-        boundaryBuffer = new ComputeBuffer(boundaryParticles.Length, 12);
+        boundaryBuffer = new ComputeBuffer(boundaryParticles.Length, 16);
         startingPosBuffer = new ComputeBuffer(startingPositions.Length, sizeof(float) * 4);
 
         particleBuffer.SetData(Particles);
@@ -292,10 +305,11 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetFloat("spacingMultiplier", spacingMultiplier);
         computeShader.SetFloat("radius", radius);
         computeShader.SetFloat("radius2", radius*radius);
+        computeShader.SetFloat("radius3", Mathf.Pow(radius, 3));
         computeShader.SetFloat("boundaryRadius", boundaryRadius);
         computeShader.SetFloat("boundaryRadius2", boundaryRadius * boundaryRadius);
-        computeShader.SetFloat("radius3", Mathf.Pow(radius,12));
-        computeShader.SetFloat("smoothRadius", spacing*1.25f);
+        computeShader.SetFloat("erosionRadius", Mathf.Pow(radius,7));
+        computeShader.SetFloat("smoothRadius", spacing/2);
         computeShader.SetFloat("gasConstant", 10f);
         computeShader.SetFloat("exponent", 7f);
         computeShader.SetFloat("restDensity", restDensity);
@@ -316,6 +330,8 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetInt("allParticlesCount", Particles.Length + boundaryParticles.Length);
 
         computeShader.SetVectorArray("startingPositions", startingPositions);
+
+        computeShader.SetMatrix("_WorldToLocal", planeTransform.worldToLocalMatrix);
 
         computeShader.SetBuffer(calcVariablesKernel, "Particles",particleBuffer);
         computeShader.SetBuffer(calcForcesKernel, "Particles", particleBuffer);

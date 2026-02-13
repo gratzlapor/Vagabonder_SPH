@@ -28,6 +28,7 @@
             struct boundaryParticle
             {
                 float3 position;
+                float erodable;
             };
 
             StructuredBuffer<boundaryParticle> boundaryParticles;
@@ -71,7 +72,7 @@
                 posOS.y = boundaryOS.y;
 
                 o.positionHCS = TransformObjectToHClip(posOS);
-                o.y = boundaryWS.y; // use world height for coloring
+                o.y = posOS.y; // use world height for coloring
 
                 return o;
             }   
