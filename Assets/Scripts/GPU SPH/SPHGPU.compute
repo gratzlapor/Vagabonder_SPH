@@ -236,11 +236,11 @@ void FluvialHeightLost(uint3 id : SV_DispatchThreadID)
         float difference_ = distance(boundaryParticles[id.x].position, Particles[j].position);
         if (difference_ > 0 && difference_ <= erosionRadius) // if 0<r<h
         {
-            if (localPos.y > -5.5 && Particles[j].pressure > 25 && length(Particles[j].velocity) > 7 && erosionCounter < 3)
+            if (localPos.y > -5.5 && Particles[j].pressure > 25 && erosionCounter < 3)
             {
                 if (boundaryParticles[id.x].erodable == 1)
                 {
-                    boundaryParticles[id.x].position.y -= 0.00001;
+                    boundaryParticles[id.x].position.y -= 0.000025;
                 }
                 else
                 {
@@ -258,7 +258,7 @@ void FluvialHeightLost(uint3 id : SV_DispatchThreadID)
     {
         if (localPos.y < -3.5)
         {
-            boundaryParticles[id.x].position.y += 0.000001;
+            boundaryParticles[id.x].position.y += 0.000025;
         }
     }
 }

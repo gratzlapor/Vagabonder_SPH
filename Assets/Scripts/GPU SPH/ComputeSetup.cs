@@ -8,6 +8,11 @@ using Unity.VisualScripting;
 using UnityEngine;
 using static UnityEngine.ParticleSystem;
 
+// Fluvial plane 7 alt:
+//      SPH: 67, 43.25, -23.5
+//      Lassítás: 0.5
+//      Fluid: 12,16,32
+
 [System.Serializable]
 [StructLayout(LayoutKind.Sequential, Size = 72)]
 public struct Particle // 68bytes
@@ -50,7 +55,7 @@ public class ComputeSetup : MonoBehaviour
     public BoundaryParticle[] boundaryParticles;
     Vector4[] startingPositions;
     GameObject[] renderedBoundaryParticles;
-    Vector3 wCountVector = new Vector3(12,16,32); 
+    Vector3 wCountVector = new Vector3(8,8,32); 
     int wCountInt;
     int bCountInt;
     int threads = 256; // Frissítsd az gpu oldalt is
@@ -110,7 +115,7 @@ public class ComputeSetup : MonoBehaviour
     {
         if (fastForward)
         {
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 4; i++)
             {
                 computeShader.Dispatch(calcVariablesKernel, Particles.Length / threads, 1, 1);
                 computeShader.Dispatch(calcForcesKernel, Particles.Length / threads, 1, 1);
@@ -320,7 +325,7 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetFloat("spacingMultiplier", spacingMultiplier);
         computeShader.SetFloat("radius", radius);
         computeShader.SetFloat("radius2", radius*radius);
-        computeShader.SetFloat("depositionRadius", 4);
+        computeShader.SetFloat("depositionRadius", 3.5f);
         computeShader.SetFloat("boundaryRadius", boundaryRadius);
         computeShader.SetFloat("boundaryRadius2", boundaryRadius * boundaryRadius);
         computeShader.SetFloat("erosionRadius", Mathf.Pow(radius,7));
