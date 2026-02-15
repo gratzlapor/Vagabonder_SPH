@@ -34,7 +34,7 @@ float boundaryMass;
 float spacingMultiplier;
 float radius;
 float radius2;
-float radius3;
+float depositionRadius;
 float erosionRadius;
 float boundaryRadius;
 float boundaryRadius2;
@@ -148,7 +148,12 @@ void CalculatePosition(uint3 id : SV_DispatchThreadID)
     
     if (Particles[id.x].position.z > boxPosition.z + boxSize.z * 2.25)
     {
+        if (Particles[id.x].starter == 1)
+        {
+            Particles[id.x].velocity *= 0.5;
+        }
         Particles[id.x].starter = 0;
+
     }
     
     
@@ -220,33 +225,42 @@ void FluvialHeightGain(uint3 id : SV_DispatchThreadID)
 [numthreads(203, 1, 1)]
 void FluvialHeightLost(uint3 id : SV_DispatchThreadID)
 {
-    int counter = 0;
+    int depositionCounter = 0;
+    int erosionCounter = 0;
     float3 worldPos = boundaryParticles[id.x].position;
 
     float3 localPos = mul(_WorldToLocal, float4(worldPos, 1.0)).xyz;
 
-        for (int j = 0; j < wParticleCount; j++)
+    for (int j = 0; j < wParticleCount; j++)
+    {
+        float difference_ = distance(boundaryParticles[id.x].position, Particles[j].position);
+        if (difference_ > 0 && difference_ <= erosionRadius) // if 0<r<h
         {
-            float difference_ = distance(boundaryParticles[id.x].position, Particles[j].position);
-            if (difference_ > 0 && difference_ <= erosionRadius) // if 0<r<h
+            if (localPos.y > -5.5 && Particles[j].pressure > 25 && length(Particles[j].velocity) > 7 && erosionCounter < 3)
             {
-                if (localPos.y > -5 && Particles[j].pressure > 25 && length(Particles[j].velocity) > 7 && counter < 3 && boundaryParticles[id.x].erodable == 1)
+                if (boundaryParticles[id.x].erodable == 1)
                 {
                     boundaryParticles[id.x].position.y -= 0.00001;
                 }
-            }
-            if (difference_ > 0 && difference_ <= radius3) // if 0<r<h
-            {
-                counter++;
+                else
+                {
+                    boundaryParticles[id.x].position.y -= 0.0000005;
+                }
+                erosionCounter++;
             }
         }
-    //if (counter == 0)
-    //{
-    //    if (localPos.y < -3.5)
-    //    {
-    //        boundaryParticles[id.x].position.y += 0.000035;
-    //    }
-    //}
+        if (difference_ > 0 && difference_ <= depositionRadius) // if 0<r<h
+        {
+            depositionCounter++;
+        }
+    }
+    if (depositionCounter == 0)
+    {
+        if (localPos.y < -3.5)
+        {
+            boundaryParticles[id.x].position.y += 0.000001;
+        }
+    }
 }
 
 [numthreads(320, 1, 1)]

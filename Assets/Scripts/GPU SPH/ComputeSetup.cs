@@ -50,7 +50,7 @@ public class ComputeSetup : MonoBehaviour
     public BoundaryParticle[] boundaryParticles;
     Vector4[] startingPositions;
     GameObject[] renderedBoundaryParticles;
-    Vector3 wCountVector = new Vector3(16,16,32); 
+    Vector3 wCountVector = new Vector3(12,16,32); 
     int wCountInt;
     int bCountInt;
     int threads = 256; // Frissítsd az gpu oldalt is
@@ -68,6 +68,7 @@ public class ComputeSetup : MonoBehaviour
     public float smoothingRadius;
 
     [Header("Adjustable Variables")]
+    public bool fastForward = false;
     public float spacingMultiplier;
     public float restDensity;
     public float fluidMass;
@@ -107,10 +108,24 @@ public class ComputeSetup : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        computeShader.Dispatch(calcVariablesKernel, Particles.Length / threads, 1, 1);
-        computeShader.Dispatch(calcForcesKernel, Particles.Length / threads, 1, 1);
-        computeShader.Dispatch(calcPositionKernel, Particles.Length / threads, 1, 1);
-        computeShader.Dispatch(fluvHeightLostKernel, boundaryParticles.Length / 203, 1, 1);
+        if (fastForward)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                computeShader.Dispatch(calcVariablesKernel, Particles.Length / threads, 1, 1);
+                computeShader.Dispatch(calcForcesKernel, Particles.Length / threads, 1, 1);
+                computeShader.Dispatch(calcPositionKernel, Particles.Length / threads, 1, 1);
+                computeShader.Dispatch(fluvHeightLostKernel, boundaryParticles.Length / 203, 1, 1);
+            }
+        }
+        else
+        {
+            computeShader.Dispatch(calcVariablesKernel, Particles.Length / threads, 1, 1);
+            computeShader.Dispatch(calcForcesKernel, Particles.Length / threads, 1, 1);
+            computeShader.Dispatch(calcPositionKernel, Particles.Length / threads, 1, 1);
+            computeShader.Dispatch(fluvHeightLostKernel, boundaryParticles.Length / 203, 1, 1);
+        }
+
         //computeShader.Dispatch(heightSmoothingKernel, boundaryParticles.Length / 320, 1, 1);
 
         //boundaryBuffer.GetData(boundaryParticles);
@@ -155,7 +170,7 @@ public class ComputeSetup : MonoBehaviour
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
-        Gizmos.DrawWireCube(new Vector3(transform.position.x,transform.position.y,transform.position.z+30), new Vector3(wCountVector.x,wCountVector.y*2,wCountVector.z+60));
+        Gizmos.DrawWireCube(new Vector3(transform.position.x,transform.position.y,transform.position.z+28.5f), new Vector3(wCountVector.x,wCountVector.y*2,wCountVector.z+57));
     }
 
     void ParticleSetup()
@@ -263,7 +278,7 @@ public class ComputeSetup : MonoBehaviour
 
         spacing = minDist;
 
-        boundaryMass = 40f;
+        boundaryMass = 10f;
         fluidMass = 1f;
 
         spacingMultiplier = 1.45f;
@@ -305,7 +320,7 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetFloat("spacingMultiplier", spacingMultiplier);
         computeShader.SetFloat("radius", radius);
         computeShader.SetFloat("radius2", radius*radius);
-        computeShader.SetFloat("radius3", Mathf.Pow(radius, 3));
+        computeShader.SetFloat("depositionRadius", 4);
         computeShader.SetFloat("boundaryRadius", boundaryRadius);
         computeShader.SetFloat("boundaryRadius2", boundaryRadius * boundaryRadius);
         computeShader.SetFloat("erosionRadius", Mathf.Pow(radius,7));
