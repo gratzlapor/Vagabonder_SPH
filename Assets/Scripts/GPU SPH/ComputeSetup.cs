@@ -55,7 +55,7 @@ public class ComputeSetup : MonoBehaviour
     public BoundaryParticle[] boundaryParticles;
     Vector4[] startingPositions;
     GameObject[] renderedBoundaryParticles;
-    Vector3 wCountVector = new Vector3(8,8,32); 
+    Vector3 wCountVector = new Vector3(4,8,24); 
     int wCountInt;
     int bCountInt;
     int threads = 256; // Frissítsd az gpu oldalt is
@@ -73,7 +73,7 @@ public class ComputeSetup : MonoBehaviour
     public float smoothingRadius;
 
     [Header("Adjustable Variables")]
-    public bool fastForward = false;
+    public bool fastForward = true;
     public float spacingMultiplier;
     public float restDensity;
     public float fluidMass;
@@ -90,7 +90,7 @@ public class ComputeSetup : MonoBehaviour
     private void Awake()
     {
         ParticleSetup();
-        CalculateVariables();
+        VariablesSetup();
         BufferAndDispatchSetup();
     }
 
@@ -115,7 +115,7 @@ public class ComputeSetup : MonoBehaviour
     {
         if (fastForward)
         {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 5; i++)
             {
                 computeShader.Dispatch(calcVariablesKernel, Particles.Length / threads, 1, 1);
                 computeShader.Dispatch(calcForcesKernel, Particles.Length / threads, 1, 1);
@@ -268,7 +268,7 @@ public class ComputeSetup : MonoBehaviour
         }
     }
 
-    void CalculateVariables()
+    void VariablesSetup()
     {
 
         Vector3 p0 = boundaryParticles[boundaryParticles.Length/2].position;
@@ -298,7 +298,7 @@ public class ComputeSetup : MonoBehaviour
         smoothingRadius = 1;
 
         pressureMin = 0;
-        pressureMax = 150f;
+        pressureMax = 50f;
     }
 
     void BufferAndDispatchSetup()
@@ -325,7 +325,7 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetFloat("spacingMultiplier", spacingMultiplier);
         computeShader.SetFloat("radius", radius);
         computeShader.SetFloat("radius2", radius*radius);
-        computeShader.SetFloat("depositionRadius", 3.5f);
+        computeShader.SetFloat("depositionRadius", 4f);
         computeShader.SetFloat("boundaryRadius", boundaryRadius);
         computeShader.SetFloat("boundaryRadius2", boundaryRadius * boundaryRadius);
         computeShader.SetFloat("erosionRadius", Mathf.Pow(radius,7));
