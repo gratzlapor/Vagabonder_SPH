@@ -325,7 +325,7 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetFloat("spacingMultiplier", spacingMultiplier);
         computeShader.SetFloat("radius", radius);
         computeShader.SetFloat("radius2", radius*radius);
-        computeShader.SetFloat("depositionRadius", 4f);
+        computeShader.SetFloat("depositionRadius", 3.5f);
         computeShader.SetFloat("boundaryRadius", boundaryRadius);
         computeShader.SetFloat("boundaryRadius2", boundaryRadius * boundaryRadius);
         computeShader.SetFloat("erosionRadius", Mathf.Pow(radius,7));
