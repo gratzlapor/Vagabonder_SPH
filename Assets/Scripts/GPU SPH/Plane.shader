@@ -29,6 +29,7 @@
             {
                 float3 position;
                 float erodable;
+                float isEroded;
             };
 
             StructuredBuffer<boundaryParticle> boundaryParticles;

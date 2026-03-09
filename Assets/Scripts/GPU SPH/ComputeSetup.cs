@@ -28,11 +28,12 @@ public struct Particle // 68bytes
 }
 
 [System.Serializable]
-[StructLayout(LayoutKind.Sequential, Size = 16)]
-public struct BoundaryParticle // 16bytes
+[StructLayout(LayoutKind.Sequential, Size = 20)]
+public struct BoundaryParticle // 20bytes
 {
     public float3 position;
     public float erodable;
+    public float isEroded;
 }
 
 public class ComputeSetup : MonoBehaviour
@@ -246,6 +247,7 @@ public class ComputeSetup : MonoBehaviour
             }
 
             boundaryParticles[i].position = planeTransform.TransformPoint(Vertices[i]);
+            boundaryParticles[i].isEroded = 0;
         }
 
         bCountInt = boundaryParticles.Length;
@@ -304,7 +306,7 @@ public class ComputeSetup : MonoBehaviour
     void BufferAndDispatchSetup()
     {
         particleBuffer = new ComputeBuffer(Particles.Length, 72);
-        boundaryBuffer = new ComputeBuffer(boundaryParticles.Length, 16);
+        boundaryBuffer = new ComputeBuffer(boundaryParticles.Length, 20);
         startingPosBuffer = new ComputeBuffer(startingPositions.Length, sizeof(float) * 4);
 
         particleBuffer.SetData(Particles);
@@ -325,7 +327,7 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetFloat("spacingMultiplier", spacingMultiplier);
         computeShader.SetFloat("radius", radius);
         computeShader.SetFloat("radius2", radius*radius);
-        computeShader.SetFloat("depositionRadius", 3.5f);
+        computeShader.SetFloat("depositionRadius", 3f);
         computeShader.SetFloat("boundaryRadius", boundaryRadius);
         computeShader.SetFloat("boundaryRadius2", boundaryRadius * boundaryRadius);
         computeShader.SetFloat("erosionRadius", Mathf.Pow(radius,7));

@@ -25,6 +25,7 @@ struct boundaryParticle
 {
     float3 position;
     float erodable;
+    float isEroded;
 };
 
 //constants and variables
@@ -150,7 +151,7 @@ void CalculatePosition(uint3 id : SV_DispatchThreadID)
     {
         if (Particles[id.x].starter == 1)
         {
-            Particles[id.x].velocity *= 0.75f;
+            Particles[id.x].velocity *= 1;
         }
         Particles[id.x].starter = 0;
 
@@ -198,15 +199,15 @@ void CalculatePosition(uint3 id : SV_DispatchThreadID)
     else
     {
         if (Particles[id.x].position.y < 5 || Particles[id.x].position.y > 50)
-        {
+        {  
             Particles[id.x].position = float3(startingPositions[id.x].x, startingPositions[id.x].y, startingPositions[id.x].z);
             Particles[id.x].velocity *= 0.4;
             Particles[id.x].starter = 1;
         }
-        if (length(Particles[id.x].velocity) < 1.1f)
+        if (length(Particles[id.x].velocity) < 2)
         {
-            Particles[id.x].velocity.z *= 1.6f;
-            Particles[id.x].velocity.x *= 1.6f;
+            Particles[id.x].velocity.z *= 1.5f;
+            Particles[id.x].velocity.x *= 1.5f;
         }
 
     }
@@ -241,11 +242,11 @@ void FluvialHeightLost(uint3 id : SV_DispatchThreadID)
         float difference_ = distance(boundaryParticles[id.x].position, Particles[j].position);
         if (difference_ > 0 && difference_ <= erosionRadius) // if 0<r<h
         {
-            if (localPos.y > -5.6 && Particles[j].pressure > 30 && erosionCounter < 3 && length(Particles[j].velocity) > 1)
+            if (localPos.y > -5.2 && Particles[j].pressure > 1 && erosionCounter < 3 /*&& length(Particles[j].velocity) > 2*/)
             {
                 if (boundaryParticles[id.x].erodable == 1)
                 {
-                    boundaryParticles[id.x].position.y -= 0.0001;
+                    boundaryParticles[id.x].position.y -= 0.00010;
                 }
                 else
                 {
@@ -259,11 +260,29 @@ void FluvialHeightLost(uint3 id : SV_DispatchThreadID)
             depositionCounter++;
         }
     }
+    if (boundaryParticles[id.x].isEroded == 0)
+    {
+        if (localPos.y < -4.5)
+        {
+            boundaryParticles[id.x].isEroded = 1;
+
+        }
+    }
     if (depositionCounter == 0)
     {
-        if (localPos.y < -3.5)
+        if (boundaryParticles[id.x].isEroded == 0)
         {
-            boundaryParticles[id.x].position.y += 0.0001;
+            if (localPos.y < -3.5)
+            {
+                boundaryParticles[id.x].position.y += 0.00010;
+            }
+        }
+        else
+        {
+            if (localPos.y < -4)
+            {
+                boundaryParticles[id.x].position.y += 0.00010;
+            }
         }
     }
 }
