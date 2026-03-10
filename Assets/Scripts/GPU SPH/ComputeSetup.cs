@@ -69,20 +69,19 @@ public class ComputeSetup : MonoBehaviour
 
 
     [Header("Variables")]
-    public float spacing;
-    public float radius;
-    public float smoothingRadius;
+    float spacing;
+    float radius;
+    float boundaryRadius;
+    float spacingMultiplier;
+    float restDensity;
+    float fluidMass;
+    float boundaryMass;
 
     [Header("Adjustable Variables")]
     public bool fastForward = true;
-    public float spacingMultiplier;
-    public float restDensity;
-    public float fluidMass;
-    public float boundaryMass;
     public float wind;
     public float pressureMin;
     public float pressureMax;
-    public float boundaryRadius;
 
     [Header("Plane")]
     [SerializeField] Mesh planeMesh;
@@ -99,6 +98,7 @@ public class ComputeSetup : MonoBehaviour
     void Start()
     {
         renderBounds = new Bounds(transform.position, Vector3.one * 1000f);
+        planeTransform.GetComponent<MeshRenderer>().material.SetBuffer("boundaryParticles", boundaryBuffer);
     }
 
     void Update()
@@ -109,6 +109,11 @@ public class ComputeSetup : MonoBehaviour
         particleMaterial.SetFloat("_PressureMin", pressureMin);
         particleMaterial.SetFloat("_PressureMax", pressureMax);
         Graphics.DrawMeshInstancedProcedural(particleMesh, 0, particleMaterial, renderBounds, Particles.Length);
+
+        if (!SystemInfo.supportsComputeShaders)
+        {
+            Debug.LogError("Compute shaders not supported!");
+        }
     }
 
     // Update is called once per frame
@@ -132,38 +137,8 @@ public class ComputeSetup : MonoBehaviour
             computeShader.Dispatch(fluvHeightLostKernel, boundaryParticles.Length / 203, 1, 1);
         }
 
-        //computeShader.Dispatch(heightSmoothingKernel, boundaryParticles.Length / 320, 1, 1);
-
-        //boundaryBuffer.GetData(boundaryParticles);
-
-        //RenderBoundaryParticlesUpdate();
-
-        //boundaryBuffer.SetData(boundaryParticles);
-
-
-        //if (Time.frameCount % 60 != 0) return;
-
-        //particleBuffer.GetData(Particles);
-
-        //float min = float.MaxValue;
-        //float max = float.MinValue;
-
-        //for (int i = 0; i < Particles.Length; i++)
-        //{
-        //    min = Mathf.Min(min, Particles[i].pressure);
-        //    max = Mathf.Max(max, Particles[i].pressure);
-        //}
-
-        //Debug.Log($"Density range: {min} → {max}");
-
-        radius = spacing * spacingMultiplier;
-        computeShader.SetFloat("radius", radius);
-        computeShader.SetFloat("restDensity", restDensity);
-        computeShader.SetFloat("mass", fluidMass);
-        computeShader.SetFloat("boundaryMass", boundaryMass);
         computeShader.SetFloat("wind", wind);
-        computeShader.SetFloat("boundaryRadius", boundaryRadius);
-        computeShader.SetFloat("boundaryRadius2", boundaryRadius* boundaryRadius);
+
     }
 
     private void OnDestroy()
@@ -297,8 +272,6 @@ public class ComputeSetup : MonoBehaviour
 
         wind = 0f;
 
-        smoothingRadius = 1;
-
         pressureMin = 0;
         pressureMax = 50f;
     }
@@ -371,6 +344,7 @@ public class ComputeSetup : MonoBehaviour
 
         particleMaterial.SetBuffer("Particles", particleBuffer);
         planeMaterial.SetBuffer("boundaryParticles", boundaryBuffer);
+
     }
 
     void RenderBoundaryParticlesUpdate()

@@ -233,18 +233,10 @@ MonoBehaviour:
   particleMesh: {fileID: 7718881313391987186, guid: 19bc855ba9ccf3c4d9099c6786476f4b, type: 3}
   particleMaterial: {fileID: 2100000, guid: 0b201137b1b33d54aa3145f4528ce434, type: 2}
   planeMaterial: {fileID: 2100000, guid: ed63418904173104b8e7998023576502, type: 2}
-  spacing: 0
-  radius: 0
-  smoothingRadius: 0
   fastForward: 1
-  spacingMultiplier: 1.45
-  restDensity: 0.9
-  fluidMass: 1
-  boundaryMass: 4.5
   wind: 5
   pressureMin: 0
   pressureMax: 50
-  boundaryRadius: 1
   planeMesh: {fileID: 6478735645019672709, guid: bd459b1d7b5058541b95230f732ab4f4, type: 3}
   planeTransform: {fileID: 1193983155}
 --- !u!1 &330585543
@@ -334,7 +326,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0.5, y: -0.5, z: 0.5, w: 0.5}
-  m_LocalPosition: {x: 63, y: 105, z: 142}
+  m_LocalPosition: {x: 63, y: 125, z: 142}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
