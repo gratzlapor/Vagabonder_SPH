@@ -6,6 +6,7 @@ using NUnit.Framework;
 using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 using static UnityEngine.ParticleSystem;
 
 // Fluvial plane 7 alt:
@@ -82,10 +83,14 @@ public class ComputeSetup : MonoBehaviour
     public float wind;
     public float pressureMin;
     public float pressureMax;
+    public int accelerate;
 
     [Header("Plane")]
     [SerializeField] Mesh planeMesh;
     [SerializeField] Transform planeTransform;
+
+    [Header("UI")]
+    public Slider accelerator;
 
     private void Awake()
     {
@@ -119,17 +124,9 @@ public class ComputeSetup : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        if (fastForward)
-        {
-            for (int i = 0; i < 5; i++)
-            {
-                computeShader.Dispatch(calcVariablesKernel, Particles.Length / threads, 1, 1);
-                computeShader.Dispatch(calcForcesKernel, Particles.Length / threads, 1, 1);
-                computeShader.Dispatch(calcPositionKernel, Particles.Length / threads, 1, 1);
-                computeShader.Dispatch(fluvHeightLostKernel, boundaryParticles.Length / 203, 1, 1);
-            }
-        }
-        else
+        int temp = accelerate;
+
+        for (int i = 0; i < temp; i++)
         {
             computeShader.Dispatch(calcVariablesKernel, Particles.Length / threads, 1, 1);
             computeShader.Dispatch(calcForcesKernel, Particles.Length / threads, 1, 1);
@@ -181,27 +178,6 @@ public class ComputeSetup : MonoBehaviour
         startingPositions = startingPositionsList.ToArray();
         wCountInt = Particles.Length;
 
-
-        //List<BoundaryParticle> boundaryList = new List<BoundaryParticle>();
-        //int wallSize = 20;
-        ////Walls
-        //for (int i = -10; i < wallSize - 10; i++)
-        //{
-        //    for (int j = 0; j < wallSize; j++)
-        //    {
-        //        for (int k = 0; k < wallSize; k++)
-        //        {
-        //            if (i != -10 && i != 9 && j != 0 && j != 19 && k == 1)
-        //            {
-        //                k += 18;
-        //            }
-        //            BoundaryParticle p = new BoundaryParticle();
-        //            p.position = new Vector3(k, i, j);
-        //            boundaryList.Add(p);
-        //        }
-        //    }
-        //}
-
         Vector3[] Vertices = planeMesh.vertices;
         Color[] colors = planeMesh.colors;
         boundaryParticles = new BoundaryParticle[Vertices.Length];
@@ -226,23 +202,6 @@ public class ComputeSetup : MonoBehaviour
         }
 
         bCountInt = boundaryParticles.Length;
-    }
-
-    void RenderSetup()
-    {
-        renderedBoundaryParticles = new GameObject[boundaryParticles.Length];
-        GameObject wallParent = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        wallParent.transform.position = new Vector3(10, 0, 10);
-        wallParent.transform.localScale = new Vector3(20, 20, 20);
-        wallParent.GetComponent<MeshRenderer>().enabled = false;
-
-        for (int i = 0; i < boundaryParticles.Length; i++)
-        {
-            renderedBoundaryParticles[i] = new GameObject();
-            renderedBoundaryParticles[i].transform.SetParent(planeTransform.transform, false); // Amúgy a kikommentezett wallParent volt
-            renderedBoundaryParticles[i].name = "b_" + i;
-            renderedBoundaryParticles[i].transform.position = boundaryParticles[i].position;
-        }
     }
 
     void VariablesSetup()
@@ -274,6 +233,8 @@ public class ComputeSetup : MonoBehaviour
 
         pressureMin = 0;
         pressureMax = 50f;
+
+        accelerate = (int)accelerator.value;
     }
 
     void BufferAndDispatchSetup()
@@ -347,11 +308,14 @@ public class ComputeSetup : MonoBehaviour
 
     }
 
-    void RenderBoundaryParticlesUpdate()
+    public void UpdateAccelerator()
     {
-        for (int i = 0; i < boundaryParticles.Length; i++)
-        {
-            boundaryParticles[i].position = renderedBoundaryParticles[i].transform.position;
-        }
+        accelerate = (int)accelerator.value;
+        Debug.Log("Acceleration set to: " + accelerate);
+    }
+
+    public void ExitGame()
+    {
+        Application.Quit();
     }
 }
