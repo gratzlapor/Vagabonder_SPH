@@ -21,7 +21,7 @@
             #pragma target 4.5
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
-            struct particle
+            struct movingParticle
             {
                 float density;
                 float pressure;
@@ -34,7 +34,7 @@
             };
 
             
-            StructuredBuffer<particle> Particles;
+            StructuredBuffer<movingParticle> Particles;
 
             float _Scale;
             float _PressureMin;

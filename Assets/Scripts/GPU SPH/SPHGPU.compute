@@ -2,14 +2,12 @@
 #pragma kernel CalculateVariables
 #pragma kernel CalculateForces
 #pragma kernel CalculatePosition
-#pragma kernel FluvialHeightGain
-#pragma kernel FluvialHeightLost
-#pragma kernel HeightSmoothing
+#pragma kernel FluvialLandforming
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
 
-struct particle
+struct movingParticle
 {
     float density;
     float pressure;
@@ -47,7 +45,6 @@ float fluidResistance;
 float gravity;
 float timeStep;
 float friction;
-float wind;
 
 float smoothRadius;
 
@@ -64,7 +61,7 @@ StructuredBuffer<float4> startingPositions;
 
 
 //array
-RWStructuredBuffer<particle> Particles;
+RWStructuredBuffer<movingParticle> Particles;
 RWStructuredBuffer<boundaryParticle> boundaryParticles;
 
 
@@ -72,7 +69,7 @@ RWStructuredBuffer<boundaryParticle> boundaryParticles;
 [numthreads(256, 1, 1)]
 void CalculateVariables(uint3 id : SV_DispatchThreadID) // Density and Pressure
 {   
-    float densityF = float(0);
+    float densityM = float(0);
     float densityB = float(0);
     for (int i = 0; i < wParticleCount; i++)
     {
@@ -80,7 +77,7 @@ void CalculateVariables(uint3 id : SV_DispatchThreadID) // Density and Pressure
         float difference2 = dot(substract, substract);
         if (difference2 <= radius2) // if 0<r<h
         {
-            densityF += mass * (315 / (64 * pi * pow(abs(radius), 9))) * pow(radius2 - difference2, 3);
+            densityM += mass * (315 / (64 * pi * pow(abs(radius), 9))) * pow(radius2 - difference2, 3);
         }  
     }
     for (int j = 0; j < bParticleCount; j++)
@@ -93,7 +90,7 @@ void CalculateVariables(uint3 id : SV_DispatchThreadID) // Density and Pressure
         }
     }
     
-    Particles[id.x].density = densityF + densityB;
+    Particles[id.x].density = densityM + densityB;
     Particles[id.x].pressure = ((gasConstant * restDensity) / exponent) * (pow(Particles[id.x].density / restDensity, exponent) - 1);
 }
 
@@ -133,7 +130,7 @@ void CalculateForces(uint3 id : SV_DispatchThreadID) // PressureForce and Viscos
 void CalculatePosition(uint3 id : SV_DispatchThreadID)
 {
     
-    float3 externalForce = float3(0, gravity, wind);
+    float3 externalForce = float3(0, gravity, 0);
     float3 allForces = float3(0,0,0);
     allForces = Particles[id.x].pressureForce + Particles[id.x].viscosityForce;
     Particles[id.x].acceleration = (allForces / Particles[id.x].density) +externalForce;
@@ -156,7 +153,6 @@ void CalculatePosition(uint3 id : SV_DispatchThreadID)
         Particles[id.x].starter = 0;
 
     }
-    
     
     if (Particles[id.x].starter==1)
     {
@@ -214,22 +210,8 @@ void CalculatePosition(uint3 id : SV_DispatchThreadID)
 
 }
 
-[numthreads(278, 1, 1)]
-void FluvialHeightGain(uint3 id : SV_DispatchThreadID)
-{
-    float posY = boundaryParticles[id.x].position.y;
-    
-    if (posY < 20)
-    {
-        posY += 0.000001;
-    }
-    
-    boundaryParticles[id.x].position.y = posY;
-    
-}
-
 [numthreads(203, 1, 1)]
-void FluvialHeightLost(uint3 id : SV_DispatchThreadID)
+void FluvialLandforming(uint3 id : SV_DispatchThreadID)
 {
     int depositionCounter = 0;
     int erosionCounter = 0;
@@ -242,7 +224,7 @@ void FluvialHeightLost(uint3 id : SV_DispatchThreadID)
         float difference_ = distance(boundaryParticles[id.x].position, Particles[j].position);
         if (difference_ > 0 && difference_ <= erosionRadius) // if 0<r<h
         {
-            if (localPos.y > -5.55 && Particles[j].pressure > 0.1 && erosionCounter < 3 /*&& length(Particles[j].velocity) > 2*/)
+            if (localPos.y > -5.575 && Particles[j].pressure > 0.1 && erosionCounter < 3 /*&& length(Particles[j].velocity) > 2*/)
             {
                 if (boundaryParticles[id.x].erodable == 1)
                 {
@@ -262,7 +244,7 @@ void FluvialHeightLost(uint3 id : SV_DispatchThreadID)
     }
     if (boundaryParticles[id.x].isEroded == 0)
     {
-        if (localPos.y < -4.5)
+        if (localPos.y < - 5)
         {
             boundaryParticles[id.x].isEroded = 1;
 
@@ -279,33 +261,10 @@ void FluvialHeightLost(uint3 id : SV_DispatchThreadID)
         }
         else
         {
-            if (localPos.y < -4)
+            if (localPos.y < -4.25)
             {
                 boundaryParticles[id.x].position.y += 0.00010;
             }
         }
     }
-}
-
-[numthreads(320, 1, 1)]
-void HeightSmoothing(uint3 id : SV_DispatchThreadID)
-{
-     float sum = 0;
-     int count = 0;
-
-        for (int i = 0; i < bParticleCount; i++)
-        {
-            float2 diffXZ = boundaryParticles[i].position.xz - boundaryParticles[id.x].position.xz;
-            float d2 = dot(diffXZ, diffXZ);
-
-            if (d2 <= smoothRadius)
-            {
-                sum += boundaryParticles[i].position.y;
-                count++;
-            }
-        }
-
-        float avg = sum / max(count, 1);
-
-        boundaryParticles[id.x].position.y = lerp(boundaryParticles[id.x].position.y, avg, 0.075);
 }

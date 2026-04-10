@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Threading;
-using NUnit.Framework;
 using Unity.Mathematics;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
-using static UnityEngine.ParticleSystem;
 
 // Fluvial plane 7 alt:
 //      SPH: 67, 43.25, -23.5
@@ -16,7 +11,7 @@ using static UnityEngine.ParticleSystem;
 
 [System.Serializable]
 [StructLayout(LayoutKind.Sequential, Size = 72)]
-public struct Particle // 68bytes
+public struct MovingParticle // 68bytes
 {
     public float density;
     public float pressure;
@@ -48,15 +43,12 @@ public class ComputeSetup : MonoBehaviour
     int calcVariablesKernel;
     int calcForcesKernel;
     int calcPositionKernel;
-    int fluvHeightGainKernel;
-    int fluvHeightLostKernel;
-    int heightSmoothingKernel;
+    int fluvLandFormingKernel;
 
 
-    Particle[] Particles;
+    MovingParticle[] Particles;
     public BoundaryParticle[] boundaryParticles;
     Vector4[] startingPositions;
-    GameObject[] renderedBoundaryParticles;
     Vector3 wCountVector = new Vector3(4,8,24); 
     int wCountInt;
     int bCountInt;
@@ -80,7 +72,6 @@ public class ComputeSetup : MonoBehaviour
 
     [Header("Adjustable Variables")]
     public bool fastForward = true;
-    public float wind;
     public float pressureMin;
     public float pressureMax;
     public int accelerate;
@@ -131,10 +122,8 @@ public class ComputeSetup : MonoBehaviour
             computeShader.Dispatch(calcVariablesKernel, Particles.Length / threads, 1, 1);
             computeShader.Dispatch(calcForcesKernel, Particles.Length / threads, 1, 1);
             computeShader.Dispatch(calcPositionKernel, Particles.Length / threads, 1, 1);
-            computeShader.Dispatch(fluvHeightLostKernel, boundaryParticles.Length / 203, 1, 1);
+            computeShader.Dispatch(fluvLandFormingKernel, boundaryParticles.Length / 203, 1, 1);
         }
-
-        computeShader.SetFloat("wind", wind);
 
     }
 
@@ -153,7 +142,7 @@ public class ComputeSetup : MonoBehaviour
 
     void ParticleSetup()
     {
-        List<Particle> fluidList = new List<Particle>();
+        List<MovingParticle> fluidList = new List<MovingParticle>();
         List<Vector4> startingPositionsList = new List<Vector4>();
         int adjustx = (int)wCountVector.x / 2;
         int adjusty = (int)wCountVector.y / 2;
@@ -166,7 +155,7 @@ public class ComputeSetup : MonoBehaviour
             {
                 for (int k = 0; k < wCountVector.z; k++)
                 {
-                    Particle p = new Particle();
+                    MovingParticle p = new MovingParticle();
                     p.starter = 1;
                     p.position = new Vector3(transform.position.x+i - adjustx, transform.position.y+j- adjusty, transform.position.z+k - adjustz);
                     fluidList.Add(p);
@@ -229,8 +218,6 @@ public class ComputeSetup : MonoBehaviour
 
         restDensity = 0.90f;
 
-        wind = 0f;
-
         pressureMin = 0;
         pressureMax = 50f;
 
@@ -251,9 +238,7 @@ public class ComputeSetup : MonoBehaviour
         calcVariablesKernel = computeShader.FindKernel("CalculateVariables");
         calcForcesKernel = computeShader.FindKernel("CalculateForces");
         calcPositionKernel = computeShader.FindKernel("CalculatePosition");
-        fluvHeightGainKernel = computeShader.FindKernel("FluvialHeightGain");
-        fluvHeightLostKernel = computeShader.FindKernel("FluvialHeightLost");
-        heightSmoothingKernel = computeShader.FindKernel("HeightSmoothing");
+        fluvLandFormingKernel = computeShader.FindKernel("FluvialLandforming");
 
         computeShader.SetFloat("pi", 3.1415f);
         computeShader.SetFloat("mass", fluidMass);
@@ -273,7 +258,6 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetFloat("gravity", -9.81f);
         computeShader.SetFloat("timeStep", 0.008f);
         computeShader.SetFloat("friction", 1f);
-        computeShader.SetFloat("wind", wind);
 
 
         computeShader.SetVector("boxPosition", new Vector4(transform.position.x, transform.position.y, transform.position.z));
@@ -292,14 +276,12 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetBuffer(calcVariablesKernel, "Particles",particleBuffer);
         computeShader.SetBuffer(calcForcesKernel, "Particles", particleBuffer);
         computeShader.SetBuffer(calcPositionKernel, "Particles", particleBuffer);
-        computeShader.SetBuffer(fluvHeightLostKernel, "Particles", particleBuffer);
+        computeShader.SetBuffer(fluvLandFormingKernel, "Particles", particleBuffer);
 
         computeShader.SetBuffer(calcVariablesKernel, "boundaryParticles", boundaryBuffer);
         computeShader.SetBuffer(calcForcesKernel, "boundaryParticles", boundaryBuffer);
         computeShader.SetBuffer(calcPositionKernel, "boundaryParticles", boundaryBuffer);
-        computeShader.SetBuffer(fluvHeightGainKernel, "boundaryParticles", boundaryBuffer);
-        computeShader.SetBuffer(fluvHeightLostKernel, "boundaryParticles", boundaryBuffer);
-        computeShader.SetBuffer(heightSmoothingKernel, "boundaryParticles", boundaryBuffer);
+        computeShader.SetBuffer(fluvLandFormingKernel, "boundaryParticles", boundaryBuffer);
 
         computeShader.SetBuffer(calcPositionKernel, "startingPositions", startingPosBuffer);
 
