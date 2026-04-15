@@ -49,7 +49,7 @@ public class ComputeSetup : MonoBehaviour
     MovingParticle[] Particles;
     public BoundaryParticle[] boundaryParticles;
     Vector4[] startingPositions;
-    Vector3 wCountVector = new Vector3(4,8,24); 
+    Vector3 wCountVector = new Vector3(4,8,32); 
     int wCountInt;
     int bCountInt;
     int threads = 256; // Frissítsd az gpu oldalt is
@@ -257,7 +257,6 @@ public class ComputeSetup : MonoBehaviour
         computeShader.SetFloat("fluidResistance", 1f);
         computeShader.SetFloat("gravity", -9.81f);
         computeShader.SetFloat("timeStep", 0.008f);
-        computeShader.SetFloat("friction", 1f);
 
 
         computeShader.SetVector("boxPosition", new Vector4(transform.position.x, transform.position.y, transform.position.z));
