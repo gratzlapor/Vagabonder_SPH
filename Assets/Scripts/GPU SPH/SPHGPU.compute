@@ -194,9 +194,9 @@ void CalculatePosition(uint3 id : SV_DispatchThreadID)
             Particles[id.x].velocity *= 0.4;
             Particles[id.x].starter = 1;
         }
-        if (length(Particles[id.x].velocity) < 3)
+        if (length(Particles[id.x].velocity) < 2.8)
         {
-            Particles[id.x].velocity.z *= 1.5f;
+            Particles[id.x].velocity.z *= 2;
             Particles[id.x].velocity.x *= 1.5f;
         }
 
@@ -218,11 +218,11 @@ void FluvialLandforming(uint3 id : SV_DispatchThreadID)
         float difference_ = distance(boundaryParticles[id.x].position, Particles[j].position);
         if (difference_ > 0 && difference_ <= erosionRadius) // if 0<r<h
         {
-            if (localPos.y > -5 && Particles[j].pressure > 0.1 && erosionCounter < 3 /*&& length(Particles[j].velocity) > 2*/)
+            if (localPos.y > -5.5 && Particles[j].pressure > 0.1 && erosionCounter < 3 /*&& length(Particles[j].velocity) > 2*/)
             {
                 if (boundaryParticles[id.x].erodable == 1)
                 {
-                    boundaryParticles[id.x].position.y -= 0.00008;
+                    boundaryParticles[id.x].position.y -= 0.0001;
                 }
                 else
                 {
@@ -250,14 +250,14 @@ void FluvialLandforming(uint3 id : SV_DispatchThreadID)
         {
             if (localPos.y < -3.5)
             {
-                boundaryParticles[id.x].position.y += 0.00008;
+                boundaryParticles[id.x].position.y += 0.0001;
             }
         }
         else
         {
             if (localPos.y < -4.25)
             {
-                boundaryParticles[id.x].position.y += 0.00008;
+                boundaryParticles[id.x].position.y += 0.0001;
             }
         }
     }
